@@ -21,6 +21,17 @@ INFOS_CACHE = 'infos_0_3353.json'
 
 
 def df_lan(*args, **kwargs):
+    """
+    Only the title and short description of an info are used for training and
+     prediction.
+
+    Returns
+    -------
+    pandas.DataFrame: df with the following attribute:
+        - df.data: title + description
+        - df.target: language encoding
+        - df.target_names: language in str
+    """
     cache = fetch_infos(*args, **kwargs)
 
     row_lst = []
