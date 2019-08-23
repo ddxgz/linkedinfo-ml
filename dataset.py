@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 INFOS_CACHE = 'infos_0_3353.json'
 
+LAN_ENCODING = {
+    'en': 0,
+    'cn': 1,
+}
+
 
 def df_lan(*args, **kwargs):
     """
@@ -35,16 +40,12 @@ def df_lan(*args, **kwargs):
     cache = fetch_infos(*args, **kwargs)
 
     row_lst = []
-    lan_encoding = {
-        'en': 0,
-        'cn': 1,
-    }
     for info in cache['content']:
         # logger.info(info['title'])
         rec = {}
         rec['data'] = f"{info['title']}. {info['description']}"
         rec['target_names'] = info['language']
-        rec['target'] = lan_encoding[info['language']]
+        rec['target'] = LAN_ENCODING[info['language']]
         row_lst.append(rec)
 
     df = pd.DataFrame(row_lst)
