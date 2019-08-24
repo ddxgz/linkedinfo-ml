@@ -21,4 +21,4 @@ WORKDIR /code
 
 RUN pip3 install -r requirements.txt
 
-CMD gunicorn -b 0.0.0.0:8090 -k gevent webapp:wsgiapp
+CMD gunicorn -b 0.0.0.0:8070 -k gevent webapp:wsgiapp

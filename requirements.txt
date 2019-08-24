@@ -107,3 +107,4 @@ Werkzeug==0.15.4
 widgetsnbextension==3.4.2
 xgboost==0.90
 xlrd==1.2.0
+gunicorn
