@@ -1,0 +1,6 @@
+* Machine Learning models for Linkedinfo.co 
+ - [X] Language identification model for info text
+ - [ ] Text-based info tags prediction model 
+ - [ ] Graph-based info tags prediction model 
+** Info language identification
+Model is trained offline and persisted. The persisted model should be placed under =./data/models/= to be loaded by the Web service.
