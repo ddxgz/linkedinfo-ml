@@ -86,7 +86,7 @@ LAN_MODEL = LanModel()
 
 if __name__ == '__main__':
     # use gevent wsgi server
-    httpserver = Geventwsgiserver(('0.0.0.0', 8090), wsgiapp)
+    httpserver = Geventwsgiserver(('0.0.0.0', 8070), wsgiapp)
     httpserver.serve_forever()
 
     # with open('data/cache/infos_80_90.json', 'r') as f:
