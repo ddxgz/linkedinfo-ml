@@ -7,10 +7,12 @@ import os
 import time
 import json
 import logging
+from dataclasses import dataclass
 
 
 import requests
 import pandas as pd
+from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 
 
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +25,49 @@ LAN_ENCODING = {
     'en': 0,
     'cn': 1,
 }
+
+
+@dataclass
+class Dataset:
+    data: pd.DataFrame
+    target: pd.DataFrame
+    target_names: pd.DataFrame
+
+
+def df_tags(*args, **kwargs):
+    """
+    All the data relate to identify tags of an info.
+
+    Text data: title, description / full text
+    scikit-learn MultiLabelBinarizer encoding: tags, creators(not used currently)
+
+    Returns
+    -------
+    pandas.DataFrame: df with the following attribute:
+        - df.data:
+        - df.target: encoding of tagsID
+        - df.target_names: tagsID
+    """
+    cache = fetch_infos(*args, **kwargs)
+
+    data_lst = []
+    tags_lst = []
+    for info in cache['content']:
+        # logger.info(info['title'])
+        data_lst.append({'title': info['title'],
+                         'description': info['description']})
+        tags_lst.append([tag['tagID'] for tag in info['tags']])
+
+    df_data = pd.DataFrame(data_lst)
+    df_tags = pd.DataFrame(tags_lst)
+    # df_tags.fillna(value=pd.np.nan, inplace=True)
+    # print(df_tags)
+    mlb = MultiLabelBinarizer()
+    Y = mlb.fit_transform(tags_lst)
+
+    ds = Dataset(df_data, Y, mlb.classes_)
+
+    return ds
 
 
 def df_lan(*args, **kwargs):
@@ -191,7 +236,11 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
 
 
 if __name__ == '__main__':
-    df = fetch_infos()
+    # df = fetch_infos()
+    ds = df_tags()
+
+    pass
 
 
 # %%
+#
