@@ -11,13 +11,22 @@ from dataclasses import dataclass
 
 
 import requests
+import html2text
+from urllib.parse import urlparse
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('dataset')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='dataset.log')
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
+consoleHandler = logging.StreamHandler()
+consoleHandler.setLevel(logging.DEBUG)
+logger.addHandler(consoleHandler)
 
+# logging.basicConfig(level=logging.INFO)
 
 INFOS_CACHE = 'infos_0_3353.json'
 
@@ -48,14 +57,15 @@ def df_tags(*args, **kwargs):
         - df.target: encoding of tagsID
         - df.target_names: tagsID
     """
-    cache = fetch_infos(*args, **kwargs)
+    cache = fetch_infos(fulltext=True, *args, **kwargs)
 
     data_lst = []
     tags_lst = []
     for info in cache['content']:
         # logger.info(info['title'])
         data_lst.append({'title': info['title'],
-                         'description': info['description']})
+                         'description': info['description'],
+                         'fulltext': info['fulltext']})
         tags_lst.append([tag['tagID'] for tag in info['tags']])
 
     df_data = pd.DataFrame(data_lst)
@@ -103,8 +113,9 @@ def df_lan(*args, **kwargs):
     return df
 
 
-def fetch_infos(data_home='data', subset='train', random_state=42, remove=(),
-                download_if_missing=True, total_size=None):
+def fetch_infos(data_home='data', subset='train', fulltext=False,
+                random_state=42, remove=(), download_if_missing=True,
+                total_size=None):
     """Load the infos from linkedinfo.co or local cache.
     Parameters
     ----------
@@ -115,6 +126,9 @@ def fetch_infos(data_home='data', subset='train', random_state=42, remove=(),
     subset : 'train' or 'test', 'all', optional
         Select the dataset to load: 'train' for the training set, 'test'
         for the test set, 'all' for both, with shuffled ordering.
+
+    fulltext : optional, False by default
+        If True, it will fectch the full text of each info. 
 
     random_state : int, RandomState instance or None (default)
         Determines random number generation for dataset shuffling. Pass an int
@@ -167,6 +181,18 @@ def fetch_infos(data_home='data', subset='train', random_state=42, remove=(),
             raise FileNotFoundError(
                 'Infos dataset not found, set download_if_missing to True to '
                 'enable data download.')
+
+    if fulltext:
+        cache_path_fulltext = os.path.join(cache_path, 'fulltext')
+        target_path_fulltext = os.path.join(data_home, 'fulltext')
+        if not os.path.exists(cache_path_fulltext):
+            os.makedirs(cache_path_fulltext)
+        if not os.path.exists(target_path_fulltext):
+            os.makedirs(target_path_fulltext)
+        for info in cache['content']:
+            info['fulltext'] = _retrieve_info_fulltext(info,
+                                                       target_dir=target_path_fulltext,
+                                                       cache_path=cache_path_fulltext)
 
     return cache
 
@@ -235,11 +261,129 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     return allinfos
 
 
-if __name__ == '__main__':
-    # df = fetch_infos()
-    ds = df_tags()
+def retrieve_infoqcn_fulltext(referer_url: str) -> str:
+    infoqcn_url = 'https://www.infoq.cn'
+    detail_url = f'{infoqcn_url}/public/v1/article/getDetail'
+    key = referer_url.split('/')[-1]
 
-    pass
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Host': 'www.infoq.cn',
+        # 'Cookie': 'SERVERID=1fa1f330efedec1559b3abbcb6e30f50|1566995276|1566995276',
+        'Referer': referer_url,
+    }
+
+    body = {'uuid': key}
+    # logger.debug(body)
+    # logger.debug(referer_url)
+    res = requests.post(detail_url, headers=headers, json=body)
+    if res.status_code != 200:
+        raise ConnectionError('Get infos not succeed!')
+    article = res.json()
+    # logger.debug(article)
+    content = article['data'].get('content', '')
+    text = html2text.html2text(content)
+    # logger.debug(f'extract infoq text  {referer_url},  {text[:10]}')
+    return text
+
+
+fulltext_spec_dict = {
+    'www.infoq.cn': retrieve_infoqcn_fulltext,
+}
+
+
+# TODO: make it asynchronous
+def _retrieve_info_fulltext(info, target_dir='data/fulltext',
+                            cache_path='data/cache/fulltext',
+                            fallback_threshold=100, force_download=False,
+                            force_extract=False):
+    """Retrieve fulltext of an info by its url. The original html doc is stored 
+    in cache_path named as info.key. The extracted text doc will be stored in 
+    target_dir named as info.key.
+
+    Some of the webpage may lazy load the fulltext or the page not exists 
+    anymore, then test if the length of the retrieved text is less than the 
+    fallback_threshold. If it's less than the fallback_threshold, return the 
+    short description of the info.
+
+    Can make a list of hosts that lazy load the fulltext, then try to utilize 
+    their APIs to retrieve the fulltext.
+
+    If force_download is True or cache not exists, then force_extract is True 
+    despite of the passing value.
+
+    Cache file naming: {key}.html
+    Target file naming: {key}.txt
+
+    Returns
+    -------
+    str : str of fulltext of the info
+    """
+    txt = info['description']
+    cache_filename = f'{info["key"]}.html'
+    cache = os.path.join(cache_path, cache_filename)
+    target_filename = f'{info["key"]}.txt'
+    target = os.path.join(target_dir, target_filename)
+
+    logger.debug(f'to retrieve fulltext of {info["url"]}')
+    if force_download or not os.path.exists(cache):
+        force_extract = True
+        # download and store
+        try:
+            res = requests.get(info['url'])
+            logger.debug(
+                f'encoding: {res.encoding}, key: {info["key"]}, url: {info["url"]}')
+            if res.status_code != 200:
+                logger.info(f'Failed to retrieve html from {info["url"]}')
+                tmp = ''
+        except Exception as e:
+            logger.error(e)
+            logger.info(f'Failed to retrieve html from {info["url"]}')
+            tmp = ''
+        else:
+            res.encoding = 'utf-8'
+            tmp = res.text
+        with open(cache, 'w') as f:
+            # if res.encoding not in ('utf-8', 'UTF-8'):
+            #     logger.debug(f'write encoding: {res.encoding} to utf-8, key: {info["key"]}')
+            #     f.write(tmp.decode(res.encoding).encode('utf-8'))
+            # else:
+            f.write(tmp)
+
+    if force_extract:
+        # extract from cache or API, and store to target
+        urlobj = urlparse(info['url'])
+        if urlobj.netloc in fulltext_spec_dict.keys():
+            logger.debug(
+                f'to extract special url: {info["key"]}, url: {info["url"]}')
+            tmp = fulltext_spec_dict[urlobj.netloc](info['url'])
+        else:
+            with open(cache, 'r') as f:
+                tmp = html2text.html2text(f.read())
+        with open(target, 'w') as f:
+            f.write(tmp)
+
+    if os.path.exists(target):
+        # get fulltext
+        with open(target, 'r') as f:
+            tmp = f.read()
+
+        # test if the fulltext is ok
+        if len(tmp) >= fallback_threshold:
+            txt = tmp
+        else:
+            logger.info(f'Short text from {info["url"]}')
+
+    return txt
+
+
+if __name__ == '__main__':
+    # logging.info('start')
+    df = fetch_infos(fulltext=True)
+    # ds = df_tags()
+
+    # pass
 
 
 # %%
