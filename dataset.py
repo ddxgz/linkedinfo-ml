@@ -18,17 +18,18 @@ from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncod
 
 
 logger = logging.getLogger('dataset')
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.In)
 handler = logging.FileHandler(filename='dataset.log')
 handler.setLevel(logging.INFO)
 logger.addHandler(handler)
 consoleHandler = logging.StreamHandler()
-consoleHandler.setLevel(logging.DEBUG)
+consoleHandler.setLevel(logging.INFO)
 logger.addHandler(consoleHandler)
 
 # logging.basicConfig(level=logging.INFO)
 
 INFOS_CACHE = 'infos_0_3353.json'
+INFOS_FULLTEXT_CACHE = 'infos_0_3353_fulltext.json'
 
 LAN_ENCODING = {
     'en': 0,
@@ -41,14 +42,21 @@ class Dataset:
     data: pd.DataFrame
     target: pd.DataFrame
     target_names: pd.DataFrame
+    target_decoded: pd.DataFrame
 
 
-def df_tags(*args, **kwargs):
+def df_tags(tag_type='label', *args, **kwargs):
     """
     All the data relate to identify tags of an info.
 
     Text data: title, description / full text
     scikit-learn MultiLabelBinarizer encoding: tags, creators(not used currently)
+
+    Parameters
+    ----------
+    tag_type : optional, label or tagID, default: 'label'
+        used to indicate which is used for tag encoding, should have no influence 
+        on the results.
 
     Returns
     -------
@@ -57,6 +65,11 @@ def df_tags(*args, **kwargs):
         - df.target: encoding of tagsID
         - df.target_names: tagsID
     """
+    if tag_type not in ['label', 'tagID']:
+        logger.warning(
+            'tag_type should be either label or tagID, use default: "label"')
+        tag_type = 'label'
+
     cache = fetch_infos(fulltext=True, *args, **kwargs)
 
     data_lst = []
@@ -66,7 +79,7 @@ def df_tags(*args, **kwargs):
         data_lst.append({'title': info['title'],
                          'description': info['description'],
                          'fulltext': info['fulltext']})
-        tags_lst.append([tag['tagID'] for tag in info['tags']])
+        tags_lst.append([tag[tag_type] for tag in info['tags']])
 
     df_data = pd.DataFrame(data_lst)
     df_tags = pd.DataFrame(tags_lst)
@@ -75,7 +88,7 @@ def df_tags(*args, **kwargs):
     mlb = MultiLabelBinarizer()
     Y = mlb.fit_transform(tags_lst)
 
-    ds = Dataset(df_data, Y, mlb.classes_)
+    ds = Dataset(df_data, Y, mlb.classes_, tags_lst)
 
     return ds
 
@@ -183,6 +196,11 @@ def fetch_infos(data_home='data', subset='train', fulltext=False,
                 'enable data download.')
 
     if fulltext:
+        infos_cache = os.path.join(infos_home, INFOS_FULLTEXT_CACHE)
+        if os.path.exists(infos_cache):
+            with open(infos_cache, 'r') as f:
+                cache = json.load(f)
+                return cache
         cache_path_fulltext = os.path.join(cache_path, 'fulltext')
         target_path_fulltext = os.path.join(data_home, 'fulltext')
         if not os.path.exists(cache_path_fulltext):
@@ -193,6 +211,8 @@ def fetch_infos(data_home='data', subset='train', fulltext=False,
             info['fulltext'] = _retrieve_info_fulltext(info,
                                                        target_dir=target_path_fulltext,
                                                        cache_path=cache_path_fulltext)
+        with open(infos_cache, 'w') as f:
+            json.dump(cache, f)
 
     return cache
 
@@ -373,7 +393,7 @@ def _retrieve_info_fulltext(info, target_dir='data/fulltext',
         if len(tmp) >= fallback_threshold:
             txt = tmp
         else:
-            logger.info(f'Short text from {info["url"]}')
+            logger.debug(f'Short text from {info["url"]}')
 
     return txt
 
