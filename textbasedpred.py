@@ -7,12 +7,14 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC, LinearSVC
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.datasets import load_files
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn import metrics
 from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.base import TransformerMixin
 import joblib
 import matplotlib.pyplot as plt
 
@@ -25,34 +27,35 @@ import dataset
 # logger.addHandler(handler)
 
 
-# ds = dataset.df_tags()
+ds = dataset.df_tags()
 
-@dataclass
-class Dataset:
-    data: pd.DataFrame
-    target: pd.DataFrame
-    target_names: pd.DataFrame
+# @dataclass
+# class Dataset:
+#     data: pd.DataFrame
+#     target: pd.DataFrame
+#     target_names: pd.DataFrame
 
 
-cache = dataset.fetch_infos()
+# cache = dataset.fetch_infos(fulltext=True)
 
-data_lst = []
-tags_lst = []
-for info in cache['content']:
-    # logger.info(info['title'])
-    data_lst.append({'title': info['title'],
-                     'description': info['description']})
-    tags_lst.append([tag['tagID'] for tag in info['tags']])
+# data_lst = []
+# tags_lst = []
+# for info in cache['content']:
+#     # logger.info(info['title'])
+#     data_lst.append({'title': info['title'],
+#                      'description': info['description'],
+#                      'fulltext': info['fulltext']})
+#     tags_lst.append([tag['tagID'] for tag in info['tags']])
 
-df_data = pd.DataFrame(data_lst)
-df_tags = pd.DataFrame(tags_lst)
-# df_tags.fillna(value=pd.np.nan, inplace=True)
-# print(df_tags)
-mlb = MultiLabelBinarizer()
-Y = mlb.fit_transform(tags_lst)
-# print(mlb.inverse_transform(Y))
+# df_data = pd.DataFrame(data_lst)
+# df_tags = pd.DataFrame(tags_lst)
+# # df_tags.fillna(value=pd.np.nan, inplace=True)
+# # print(df_tags)
+# mlb = MultiLabelBinarizer()
+# Y = mlb.fit_transform(tags_lst)
+# # print(mlb.inverse_transform(Y))
 
-ds = Dataset(df_data, Y, mlb.classes_)
+# ds = Dataset(df_data, Y, mlb.classes_)
 
 # Split the dataset in training and test set:
 X_train, X_test, Y_train, Y_test = train_test_split(
@@ -72,51 +75,79 @@ X_train, X_test, Y_train, Y_test = train_test_split(
 # clf = OneVsRestClassifier(LinearSVC())
 
 
+class DenseTransformer(TransformerMixin):
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        return X.todense()
+
+
 # Build vectorizer classifier pipeline
 clf = Pipeline([
-    ('vect', TfidfVectorizer()),
+    ('vect', TfidfVectorizer(use_idf=True, max_df=0.8)),
     # ('clf', Perceptron()),
-    ('clf', OneVsRestClassifier(LinearSVC(dual=False))),
+    ('clf', OneVsRestClassifier(LinearSVC(penalty='l1', dual=False))),
+    # ('to_dense', DenseTransformer()),
+    # ('clf', GaussianNB()),
 ])
 
 # grid search parameters
-C_OPTIONS = [1, 10, 100, 1000]
+# C_OPTIONS = [1, 10, 100, 1000]
+C_OPTIONS = [10]
 
 parameters = {
-    'vect__ngram_range': [(1, 2), (1, 3), (1, 4)],
-    'vect__max_df': [1, 0.9, 0.8, 0.7],
+    'vect__ngram_range': [(1, 4)],
+    # 'vect__ngram_range': [(1, 2), (1, 3), (1, 4)],
+    # 'vect__max_df': [1, 0.9, 0.8, 0.7],
     # 'vect__min_df': [1, 0.9, 0.8, 0.7, 0],
     # 'vect__analyzer': ['char', 'word'],
-    'vect__use_idf': [True, False],
-    'clf__estimator__penalty': ['l1', 'l2'],
+    # 'vect__use_idf': [True, False],
+    # 'clf__estimator__penalty': ['l1', 'l2'],
     # 'clf__alpha': [0.001, 0.0001, 0.00001],
     'clf__estimator__C': C_OPTIONS,
 }
 gs_clf = GridSearchCV(clf, parameters, cv=5, n_jobs=-1)
-gs_clf.fit(X_train.description, Y_train)
-# y_score = gs_clf.decision_function(X_test.description)
-# pred_test = gs_clf.predict(X_test.description)
+gs_clf.fit(X_train.fulltext, Y_train)
+# y_score = gs_clf.decision_function(X_test.fulltext)
+# pred_test = gs_clf.predict(X_test.fulltext)
 
 # Predict the outcome on the testing set in a variable named y_predicted
-Y_predicted = gs_clf.predict(X_test.description)
+Y_predicted = gs_clf.predict(X_test.fulltext)
 
 print(metrics.classification_report(Y_test, Y_predicted))
 
-# Plot the confusion matrix
-cm = metrics.confusion_matrix(Y_test, Y_predicted)
-print(cm)
+# # Plot the confusion matrix
+# cm = metrics.confusion_matrix(Y_test, Y_predicted)
+# print(cm)
 
 print(gs_clf.best_params_)
 print(gs_clf.best_score_)
 
-# clf.fit(X_train.description, Y_train)
+cols = [
+    'mean_test_score',
+    'mean_fit_time',
+    'param_vect__ngram_range',
+]
+df_result = pd.DataFrame(gs_clf.cv_results_)
+df_result = df_result.sort_values(by='rank_test_score')
+df_result = df_result[cols]
+df_result.to_html('data/results/gridcv_results_20190829_gauNB.html')
+
+# clf.fit(X_train.fulltext, Y_train)
 # clf.fit(X_train, Y_train)
 # y_score = clf.decision_function(X_test)
 # pred_test = clf.predict(X_test)
 
-# for (rec, pred) in zip(Y_test, pred_test):
+# mlb = MultiLabelBinarizer()
+# mlb.fit(ds.target_decoded)
+# # Y = mlb.fit_transform(tags_lst)
+# # # print(mlb.inverse_transform(Y))
+
+# for (rec, pred) in zip(Y_test, Y_predicted):
 #     print(
-#         f'tags: {mlb.inverse_transform(rec)}\npred: {mlb.inverse_transform(pred)}')
+#         f'tags: {mlb.inverse_transform([rec])}\npred: {mlb.inverse_transform([pred])}')
 
 # # # mlb = MultiLabelBinarizer()
 # # # mlb.fit(ds.target)
