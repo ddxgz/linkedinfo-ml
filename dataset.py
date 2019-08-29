@@ -45,7 +45,7 @@ class Dataset:
     target_decoded: pd.DataFrame
 
 
-def df_tags(tag_type='label', *args, **kwargs):
+def df_tags(tag_type='tagID', *args, **kwargs):
     """
     All the data relate to identify tags of an info.
 
@@ -54,7 +54,7 @@ def df_tags(tag_type='label', *args, **kwargs):
 
     Parameters
     ----------
-    tag_type : optional, label or tagID, default: 'label'
+    tag_type : optional, label or tagID, default: 'tagID'
         used to indicate which is used for tag encoding, should have no influence 
         on the results.
 
@@ -67,8 +67,8 @@ def df_tags(tag_type='label', *args, **kwargs):
     """
     if tag_type not in ['label', 'tagID']:
         logger.warning(
-            'tag_type should be either label or tagID, use default: "label"')
-        tag_type = 'label'
+            'tag_type should be either label or tagID, use default: "tagID"')
+        tag_type = 'tagID'
 
     cache = fetch_infos(fulltext=True, *args, **kwargs)
 
@@ -281,6 +281,13 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     return allinfos
 
 
+def extract_text_from_html(source:str)->str:
+    h = html2text.HTML2Text()
+    h.ignore_links = True
+    h.ignore_images = True
+    h.escape_snob = True
+    return h.handle(source)
+
 def retrieve_infoqcn_fulltext(referer_url: str) -> str:
     infoqcn_url = 'https://www.infoq.cn'
     detail_url = f'{infoqcn_url}/public/v1/article/getDetail'
@@ -303,7 +310,8 @@ def retrieve_infoqcn_fulltext(referer_url: str) -> str:
     article = res.json()
     # logger.debug(article)
     content = article['data'].get('content', '')
-    text = html2text.html2text(content)
+    # text = html2text.html2text(content)
+    text = extract_text_from_html(content)
     # logger.debug(f'extract infoq text  {referer_url},  {text[:10]}')
     return text
 
@@ -380,7 +388,8 @@ def _retrieve_info_fulltext(info, target_dir='data/fulltext',
             tmp = fulltext_spec_dict[urlobj.netloc](info['url'])
         else:
             with open(cache, 'r') as f:
-                tmp = html2text.html2text(f.read())
+                # tmp = html2text.html2text(f.read())
+                tmp = extract_text_from_html(f.read())
         with open(target, 'w') as f:
             f.write(tmp)
 
