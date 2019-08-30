@@ -27,7 +27,7 @@ import dataset
 # logger.addHandler(handler)
 
 
-ds = dataset.df_tags()
+ds = dataset.df_tags(content_length_threshold=100)
 
 # TODO: remove infos with very short text / description
 
@@ -130,7 +130,7 @@ print(metrics.classification_report(Y_test, Y_predicted))
 print(gs_clf.best_params_)
 print(gs_clf.best_score_)
 
-#%%
+# %%
 cols = [
     'mean_test_score',
     'mean_fit_time',
@@ -139,7 +139,7 @@ cols = [
 df_result = pd.DataFrame(gs_clf.cv_results_)
 df_result = df_result.sort_values(by='rank_test_score')
 df_result = df_result[cols]
-df_result.to_html('data/results/gridcv_results_20190829_gauNB.html')
+df_result.to_html('data/results/gridcv_results_20190830_linearSVC.html')
 
 # clf.fit(X_train.fulltext, Y_train)
 # clf.fit(X_train, Y_train)
