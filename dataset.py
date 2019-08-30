@@ -45,7 +45,7 @@ class Dataset:
     target_decoded: pd.DataFrame
 
 
-def df_tags(tag_type='tagID', *args, **kwargs):
+def df_tags(tag_type='tagID', content_length_threshold=200, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
 
@@ -76,6 +76,10 @@ def df_tags(tag_type='tagID', *args, **kwargs):
     tags_lst = []
     for info in cache['content']:
         # logger.info(info['title'])
+        if len(info['fulltext']) < content_length_threshold:
+            continue
+        if len(info['description']) < content_length_threshold:
+            continue
         data_lst.append({'title': info['title'],
                          'description': info['description'],
                          'fulltext': info['fulltext']})
@@ -281,12 +285,13 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     return allinfos
 
 
-def extract_text_from_html(source:str)->str:
+def extract_text_from_html(source: str) -> str:
     h = html2text.HTML2Text()
     h.ignore_links = True
     h.ignore_images = True
     h.escape_snob = True
     return h.handle(source)
+
 
 def retrieve_infoqcn_fulltext(referer_url: str) -> str:
     infoqcn_url = 'https://www.infoq.cn'
