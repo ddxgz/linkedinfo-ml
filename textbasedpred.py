@@ -29,37 +29,51 @@ import dataset
 
 ds = dataset.df_tags()
 
-# @dataclass
-# class Dataset:
-#     data: pd.DataFrame
-#     target: pd.DataFrame
-#     target_names: pd.DataFrame
-
-
-# cache = dataset.fetch_infos(fulltext=True)
-
-# data_lst = []
-# tags_lst = []
-# for info in cache['content']:
-#     # logger.info(info['title'])
-#     data_lst.append({'title': info['title'],
-#                      'description': info['description'],
-#                      'fulltext': info['fulltext']})
-#     tags_lst.append([tag['tagID'] for tag in info['tags']])
-
-# df_data = pd.DataFrame(data_lst)
-# df_tags = pd.DataFrame(tags_lst)
-# # df_tags.fillna(value=pd.np.nan, inplace=True)
-# # print(df_tags)
-# mlb = MultiLabelBinarizer()
-# Y = mlb.fit_transform(tags_lst)
-# # print(mlb.inverse_transform(Y))
-
-# ds = Dataset(df_data, Y, mlb.classes_)
+# TODO: remove infos with very short text / description
 
 # Split the dataset in training and test set:
 X_train, X_test, Y_train, Y_test = train_test_split(
     ds.data, ds.target, test_size=0.5, random_state=42)
+
+
+# %%
+# gaussian bayesian
+
+class DenseTransformer(TransformerMixin):
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+    def transform(self, X, y=None, **fit_params):
+        return X.todense()
+
+
+# Build vectorizer classifier pipeline
+clf = Pipeline([
+    ('vect', TfidfVectorizer(use_idf=True, max_df=0.8)),
+    ('to_dense', DenseTransformer()),
+    ('clf', OneVsRestClassifier(GaussianNB())),
+])
+
+
+parameters = {
+    'vect__ngram_range': [(1, 4)],
+}
+
+gs_clf = GridSearchCV(clf, parameters, cv=5, n_jobs=-1)
+gs_clf.fit(X_train.description, Y_train)
+
+# Predict the outcome on the testing set in a variable named y_predicted
+Y_predicted = gs_clf.predict(X_test.description)
+
+print(metrics.classification_report(Y_test, Y_predicted))
+
+print(gs_clf.best_params_)
+print(gs_clf.best_score_)
+
+# %%
+
+#
 
 # Build vectorizer classifier pipeline
 # clf = Pipeline([
@@ -73,15 +87,6 @@ X_train, X_test, Y_train, Y_test = train_test_split(
 # X_train = vectorizer.transform(X_train.description)
 # X_test = vectorizer.transform(X_test.description)
 # clf = OneVsRestClassifier(LinearSVC())
-
-
-class DenseTransformer(TransformerMixin):
-
-    def fit(self, X, y=None, **fit_params):
-        return self
-
-    def transform(self, X, y=None, **fit_params):
-        return X.todense()
 
 
 # Build vectorizer classifier pipeline
@@ -125,6 +130,7 @@ print(metrics.classification_report(Y_test, Y_predicted))
 print(gs_clf.best_params_)
 print(gs_clf.best_score_)
 
+#%%
 cols = [
     'mean_test_score',
     'mean_fit_time',
