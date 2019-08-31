@@ -1,5 +1,6 @@
 """Web service for serving prediction requests based on trained models"""
 
+from abc import ABC, abstractmethod
 import os
 import json
 import uuid
@@ -19,27 +20,37 @@ wsgiapp = app.wsgi_app
 def singleton(cls, *args, **kwargs):
     instances = {}
 
-    def _singleton():
+    def _singleton(*args, **kwargs):
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
     return _singleton
 
 
-@singleton
-class LanModel:
-    def __init__(self, modelfile: str = 'data/models/lan_pred_1.joblib.gz'):
-        self._load_model(modelfile)
+class PredictModel(ABC):
+    def __init__(self, modelfile: str):
+        self.model = self._load_model(modelfile)
+        super().__init__()
 
+    @abstractmethod
     def predict(self, text):
-        return self.model.predict(text)
+        raise NotImplementedError(
+            'users must define __str__ to use this base class')
 
     def _load_model(self, modelfile: str = None):
         if os.path.exists(modelfile):
-            self.model = joblib.load(modelfile)
+            model = joblib.load(modelfile)
+            return model
         else:
             raise FileNotFoundError('Model file not exists! The model should be'
                                     'place under ./data/models/')
+
+
+@singleton
+class LanModel(PredictModel):
+
+    def predict(self, text):
+        return self.model.predict(text)
 
 
 def predict_language(info: dict) -> str:
@@ -82,7 +93,7 @@ def pred_lan():
         return resp
 
 
-LAN_MODEL = LanModel()
+LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
 
 if __name__ == '__main__':
     # use gevent wsgi server
