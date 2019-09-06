@@ -2,7 +2,7 @@
  - [X] Language identification model for info text
  - [ ] Text-based info tags prediction model 
     - [X] LinearSVC
-    - [ ] Bayesian model
+    - [X] Bayesian model
     - [ ] Neural network
  - [ ] Graph-based info tags prediction model 
 ** Info language identification

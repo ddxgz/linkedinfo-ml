@@ -8,6 +8,7 @@ import time
 import json
 import logging
 from dataclasses import dataclass
+import random
 
 
 import requests
@@ -30,6 +31,8 @@ logger.addHandler(consoleHandler)
 
 INFOS_CACHE = 'infos_0_3353.json'
 INFOS_FULLTEXT_CACHE = 'infos_0_3353_fulltext.json'
+# UNTAGGED_INFOS_FULLTEXT_CACHE = 'untagged_infos_fulltext.json'
+UNTAGGED_INFOS_CACHE = 'untagged_infos.json'
 
 LAN_ENCODING = {
     'en': 0,
@@ -130,6 +133,38 @@ def df_lan(*args, **kwargs):
     return df
 
 
+def fetch_untagged_infos(data_home='data', fulltext=False,
+                         force_download=True):
+    data_home = data_home
+    cache_path = os.path.join(data_home, 'cache')
+    infos_home = os.path.join(data_home, 'untagged_infos')
+    infos_cache = os.path.join(infos_home, UNTAGGED_INFOS_CACHE)
+    cache = None
+
+    if os.path.exists(infos_cache) and not force_download:
+        with open(infos_cache, 'r') as f:
+            cache = json.load(f)
+
+    if cache is None:
+        logger.info("Calling API to retrieve infos.")
+        cache = _retrieve_untagged_infos(target_dir=infos_home,
+                                         cache_path=cache_path)
+
+    if fulltext:
+        cache_path_fulltext = os.path.join(cache_path, 'fulltext')
+        target_path_fulltext = os.path.join(data_home, 'fulltext')
+        if not os.path.exists(cache_path_fulltext):
+            os.makedirs(cache_path_fulltext)
+        if not os.path.exists(target_path_fulltext):
+            os.makedirs(target_path_fulltext)
+        for info in cache['content']:
+            info['fulltext'] = _retrieve_info_fulltext(info,
+                                                       target_dir=target_path_fulltext,
+                                                       cache_path=cache_path_fulltext)
+
+    return cache
+
+
 def fetch_infos(data_home='data', subset='train', fulltext=False,
                 random_state=42, remove=(), download_if_missing=True,
                 total_size=None):
@@ -219,6 +254,19 @@ def fetch_infos(data_home='data', subset='train', fulltext=False,
             json.dump(cache, f)
 
     return cache
+
+
+def _retrieve_untagged_infos(target_dir, cache_path):
+    size = 20
+    infos_cache = os.path.join('data/infos', INFOS_CACHE)
+    cache = None
+
+    if os.path.exists(infos_cache):
+        with open(infos_cache, 'r') as f:
+            cache = json.load(f)
+
+    offset = random.randint(0, len(cache['content']) - size)
+    return {'content': cache['content'][offset:offset + size]}
 
 
 def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
@@ -414,8 +462,9 @@ def _retrieve_info_fulltext(info, target_dir='data/fulltext',
 
 if __name__ == '__main__':
     # logging.info('start')
-    df = fetch_infos(fulltext=True)
+    # df = fetch_infos(fulltext=True)
     # ds = df_tags()
+    infos = fetch_untagged_infos()
 
     # pass
 

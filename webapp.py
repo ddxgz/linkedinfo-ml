@@ -53,6 +53,13 @@ class LanModel(PredictModel):
         return self.model.predict(text)
 
 
+@singleton
+class TagsTextModel(PredictModel):
+
+    def predict(self, text):
+        return self.model.predict(text)
+
+
 def predict_language(info: dict) -> str:
     """ An info comes in as a json (dict) in the following format, use title and 
     description for prediction.
@@ -84,6 +91,26 @@ def predict_language(info: dict) -> str:
     return 'unknown_lan'
 
 
+def predict_tags(info: dict) -> str:
+    """ An info comes in as a json (dict), use 
+    description or fulltext (if presence) for prediction.
+
+    Returns
+    -------
+    str of the tags acronym
+    """
+    if 'fulltext' in info.keys():
+        text = info['fulltext']
+    else:
+        text = info['description']
+
+    predicted = TAGS_MODEL.predict([text])
+    # inverse transform tags
+    return predicted
+
+    return []
+
+
 @app.route('/predictions/language', methods=['POST'])
 def pred_lan():
     if request.method == 'POST':
@@ -93,7 +120,18 @@ def pred_lan():
         return resp
 
 
+@app.route('/predictions/tags', methods=['POST'])
+def pred_tags():
+    if request.method == 'POST':
+        info = request.get_json()
+        tags_pred = predict_tags(info)
+        resp = json.dumps({'tags': tags_pred})
+        return resp
+
+
 LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
+TAGS_MODEL = TagsTextModel(
+    modelfile='data/models/tags_textbased_pred_1.joblib.gz')
 
 if __name__ == '__main__':
     # use gevent wsgi server
