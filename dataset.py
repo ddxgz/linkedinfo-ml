@@ -48,7 +48,7 @@ class Dataset:
     target_decoded: pd.DataFrame
 
 
-def df_tags(tag_type='tagID', content_length_threshold=200, *args, **kwargs):
+def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
 
@@ -464,9 +464,9 @@ if __name__ == '__main__':
     # logging.info('start')
     # df = fetch_infos(fulltext=True)
     # ds = df_tags()
-    infos = fetch_untagged_infos()
+    # infos = fetch_untagged_infos()
 
-    # pass
+    pass
 
 
 # %%
