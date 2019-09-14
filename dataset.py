@@ -5,6 +5,7 @@ params ref to scikit-learn fetch_dataset.
 """
 import os
 import time
+from datetime import datetime
 import json
 import logging
 from dataclasses import dataclass
@@ -67,6 +68,7 @@ def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
         - df.data:
         - df.target: encoding of tagsID
         - df.target_names: tagsID
+        - df.target_decoded: the list of lists contains tagsID for each info
     """
     if tag_type not in ['label', 'tagID']:
         logger.warning(
@@ -131,6 +133,20 @@ def df_lan(*args, **kwargs):
     #     data_lst = list()
 
     return df
+
+
+def caching_untagged_infos(data_home='data'):
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    infos_home = os.path.join(data_home, 'untagged_infos')
+
+    if not os.path.exists(infos_home):
+        os.makedirs(infos_home)
+
+    cache = fetch_untagged_infos(fulltext=True)
+
+    filename = f'{infos_home}/untagged_infos_{timestamp}.json'
+    with open(filename, 'w') as f:
+        json.dump(cache, f)
 
 
 def fetch_untagged_infos(data_home='data', fulltext=False,
@@ -465,9 +481,9 @@ if __name__ == '__main__':
     # df = fetch_infos(fulltext=True)
     # ds = df_tags()
     # infos = fetch_untagged_infos()
+    caching_untagged_infos()
 
-    pass
+    # pass
 
-
-# %%
-#
+    # %%
+    #
