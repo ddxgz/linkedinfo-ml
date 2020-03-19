@@ -1,9 +1,14 @@
 * Machine Learning models for Linkedinfo.co 
+** TODOs
  - [X] Language identification model for info text
  - [ ] Text-based info tags prediction model 
     - [X] LinearSVC
     - [X] Bayesian model
-    - [ ] Neural network
+    - [ ] Vanilla neural network
+    - [ ] BERT
+    - [ ] Stacking models with other feature like title, author, host, etc.
  - [ ] Graph-based info tags prediction model 
+ - [ ] Try different sampling methods
+ - [ ] Migrate to GCloud run
 ** Info language identification
 Model is trained offline and persisted. The persisted model should be placed under =./data/models/= to be loaded by the Web service.
