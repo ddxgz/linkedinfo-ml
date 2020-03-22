@@ -41,6 +41,7 @@ LAN_ENCODING = {
 }
 
 
+# TODO: maybe change dataset to namedtuple
 @dataclass
 class Dataset:
     data: pd.DataFrame
@@ -87,6 +88,7 @@ def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
             continue
         data_lst.append({'title': info['title'],
                          'description': info['description'],
+                         'language': info['language'],
                          'fulltext': info['fulltext']})
         tags_lst.append([tag[tag_type] for tag in info['tags']])
 
