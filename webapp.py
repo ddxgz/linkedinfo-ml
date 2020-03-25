@@ -5,16 +5,22 @@ import os
 import json
 import uuid
 
+import numpy as np
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer as Geventwsgiserver
 import joblib
+import torch
+from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
 
+import dataset
 from dataset import LAN_ENCODING
 
 app = Flask('ML-prediction-service')
 app.secret_key = str(uuid.uuid4())
 app.debug = True
 wsgiapp = app.wsgi_app
+
+PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
 
 
 def singleton(cls, *args, **kwargs):
@@ -58,6 +64,48 @@ class TagsTextModel(PredictModel):
 
     def predict(self, text):
         return self.model.predict(text)
+
+
+@singleton
+class TagsTextModelV2(PredictModel):
+    def __init__(self, modelfile: str):
+        super().__init__(modelfile)
+
+        self.tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+        self.feat_model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+
+        ds = dataset.df_tags(content_length_threshold=100, lan='en',
+                             partial_len=1000)
+        self.mlb = ds.mlb
+
+    def predict(self, text):
+        col_text = 'partial_text'
+        tokenized = []
+        for i in text:
+            tokenized.append(self.tokenizer.encode(i, add_special_tokens=True,
+                                                   max_length=128))
+        max_len = 0
+        for i in tokenized:
+            if len(i) > max_len:
+                max_len = len(i)
+
+        padded = np.array([i + [0] * (max_len - len(i)) for i in tokenized])
+        # %%
+        attention_mask = np.where(padded != 0, 1, 0)
+        attention_mask.shape
+        # %%
+        input_ids = torch.tensor(padded)
+        attention_mask = torch.tensor(attention_mask)
+        features = []
+
+        with torch.no_grad():
+            last_hidden_states = self.feat_model(
+                input_ids, attention_mask=attention_mask)
+            features = last_hidden_states[0][:, 0, :].numpy()
+
+        pred = self.model.predict(features)
+        pred_transformed = self.mlb.inverse_transform(pred)
+        return pred_transformed
 
 
 def predict_language(info: dict) -> str:
@@ -104,11 +152,12 @@ def predict_tags(info: dict) -> str:
     else:
         text = info['description']
 
+    if 'title' in info.keys():
+        text = f"{info['title']}. {text}"
+
     predicted = TAGS_MODEL.predict([text])
     # inverse transform tags
     return predicted
-
-    return []
 
 
 @app.route('/predictions/language', methods=['POST'])
@@ -130,8 +179,10 @@ def pred_tags():
 
 
 LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
-TAGS_MODEL = TagsTextModel(
-    modelfile='data/models/tags_textbased_pred_1.joblib.gz')
+# TAGS_MODEL = TagsTextModel(
+#     modelfile='data/models/tags_textbased_pred_1.joblib.gz')
+TAGS_MODEL = TagsTextModelV2(
+    modelfile='data/models/tags_textbased_pred_2.joblib.gz')
 
 if __name__ == '__main__':
     # use gevent wsgi server

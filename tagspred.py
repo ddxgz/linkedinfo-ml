@@ -108,6 +108,71 @@ def model_persist(filename='tags_textbased_pred_1', datahome='data/models'):
     m = joblib.dump(clf, dump_target, compress=3)
 
 
+def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
+    import numpy as np
+    import torch
+    from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
+
+    import dataset
+
+    DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    ds = dataset.df_tags(content_length_threshold=100, lan='en',
+                         partial_len=1000)
+
+    # %%
+    from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel, BertConfig
+
+    # PRETRAINED_BERT_WEIGHTS = 'distilbert-base-uncased'
+    PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
+    # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-4_H-256_A-4"
+    # tokenizer = DistilBertTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+    # model = DistilBertModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+    tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+    config = BertConfig()
+    # config = BertConfig(max_position_embeddings=2048)
+    model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+
+    col_text = 'partial_text'
+    tokenized = ds.data[col_text].apply(
+        (lambda x: tokenizer.encode(x, add_special_tokens=True,
+                                    max_length=128)))
+
+    # %%
+    max_len = 0
+    for i in tokenized.values:
+        if len(i) > max_len:
+            max_len = len(i)
+
+    padded = np.array([i + [0] * (max_len - len(i)) for i in tokenized.values])
+    # %%
+    attention_mask = np.where(padded != 0, 1, 0)
+    attention_mask.shape
+    # %%
+    input_ids = torch.tensor(padded)
+    attention_mask = torch.tensor(attention_mask)
+    features = []
+
+    with torch.no_grad():
+        last_hidden_states = model(input_ids, attention_mask=attention_mask)
+        features = last_hidden_states[0][:, 0, :].numpy()
+
+    from sklearn.svm import SVC, LinearSVC
+    from sklearn.multiclass import OneVsRestClassifier
+    from sklearn import metrics
+
+    # Build vectorizer classifier pipeline
+    clf = OneVsRestClassifier(LinearSVC(penalty='l1', C=1, dual=False))
+
+    clf.fit(features, ds.target)
+
+    if not os.path.exists(datahome):
+        os.makedirs(datahome)
+
+    dump_target = os.path.join(datahome, f'{filename}.joblib.gz')
+    m = joblib.dump(clf, dump_target, compress=3)
+
+
 if __name__ == '__main__':
     # model_search()
-    model_persist()
+    model_persist_v2()

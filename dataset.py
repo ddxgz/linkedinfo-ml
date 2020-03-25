@@ -10,6 +10,7 @@ import json
 import logging
 from dataclasses import dataclass
 import random
+import re
 
 
 import requests
@@ -17,6 +18,7 @@ import html2text
 from urllib.parse import urlparse
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
+from sklearn.model_selection import train_test_split
 
 
 logger = logging.getLogger('dataset')
@@ -30,6 +32,8 @@ logger.addHandler(consoleHandler)
 
 # logging.basicConfig(level=logging.INFO)
 
+RAND_STATE = 20200122
+DATA_DIR = 'data'
 INFOS_CACHE = 'infos_0_3353.json'
 INFOS_FULLTEXT_CACHE = 'infos_0_3353_fulltext.json'
 # UNTAGGED_INFOS_FULLTEXT_CACHE = 'untagged_infos_fulltext.json'
@@ -48,9 +52,52 @@ class Dataset:
     target: pd.DataFrame
     target_names: pd.DataFrame
     target_decoded: pd.DataFrame
+    mlb: MultiLabelBinarizer
 
 
-def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
+#TODO: not finished
+def df_tags_fasttext(ds: Dataset, test_size: float = 0.3):
+    ft_dir = os.path.join(DATA_DIR, 'fasttext')
+    if not os.path.exists(ft_dir):
+        os.makedirs(ft_dir)
+
+    train_file = os.path.join(ft_dir, 'tags.train')
+    test_file = os.path.join(ft_dir, 'tags.test')
+
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        ds.data, ds.target, test_size=test_size, random_state=RAND_STATE)
+
+    for X, Y, filename in zip([X_train, X_test], [Y_train, Y_test], [train_file, test_file]):
+        with open(filename, 'w') as f:
+            for record, y in zip(X, Y):
+                f.writeline(record['fullttext'])
+
+
+def clean_text(text):
+    text = text.replace('\\n', '')
+    text = text.replace('\\', '')
+    #text = text.replace('\t', '')
+    # text = re.sub('\[(.*?)\]','',text) #removes [this one]
+    text = re.sub('(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?\s',
+                  ' __url__ ', text)  # remove urls
+    #text = re.sub('\'','',text)
+    # text = re.sub(r'\d+', ' __number__ ', text) #replaces numbers
+    #text = re.sub('\W', ' ', text)
+    text = re.sub(' +', ' ', text)
+    text = text.replace('\t', '')
+    text = text.replace('\n', '')
+    return text
+
+
+def remove_code_sec(text):
+
+    return text
+
+
+# TODO: add option to filter out tags that has very few infos
+# TODO: add language filter option to get only selected languages
+def df_tags(tag_type: str = 'tagID', content_length_threshold: int = 100, lan: str = None,
+            partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
 
@@ -62,6 +109,14 @@ def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
     tag_type : optional, label or tagID, default: 'tagID'
         used to indicate which is used for tag encoding, should have no influence 
         on the results.
+
+    lan: optional, select from cn, en or None. None == both
+
+    partial_len : optional, used to limit the length of fulltext to include.
+        If not None, the title of an info will be put in the beginning.
+
+    remove_code: optional, set to remove code sections in the fulltext. The
+        current impl removes only code sections that have marked as code sections
 
     Returns
     -------
@@ -82,14 +137,28 @@ def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
     tags_lst = []
     for info in cache['content']:
         # logger.info(info['title'])
+        if lan:
+            if info['language'] != lan:
+                continue
         if len(info['fulltext']) < content_length_threshold:
             continue
         if len(info['description']) < content_length_threshold:
             continue
+        if remove_code:
+            info['fulltext'] = remove_code_sec(info['fulltext'])
+        info['fulltext'] = clean_text(info['fulltext'])
+        if partial_len is not None and partial_len > 0:
+            info['partial_text'] = info['title'] + '. '
+            if partial_len < len(info['fulltext']):
+                info['partial_text'] += info['fulltext'][:partial_len]
+            else:
+                info['partial_text'] += info['fulltext']
+
         data_lst.append({'title': info['title'],
                          'description': info['description'],
                          'language': info['language'],
-                         'fulltext': info['fulltext']})
+                         'fulltext': info['fulltext'],
+                         'partial_text': info['partial_text']})
         tags_lst.append([tag[tag_type] for tag in info['tags']])
 
     df_data = pd.DataFrame(data_lst)
@@ -99,7 +168,7 @@ def df_tags(tag_type='tagID', content_length_threshold=100, *args, **kwargs):
     mlb = MultiLabelBinarizer()
     Y = mlb.fit_transform(tags_lst)
 
-    ds = Dataset(df_data, Y, mlb.classes_, tags_lst)
+    ds = Dataset(df_data, Y, mlb.classes_, tags_lst, mlb)
 
     return ds
 
@@ -185,7 +254,8 @@ def fetch_untagged_infos(data_home='data', fulltext=False,
 
 def fetch_infos(data_home='data', subset='train', fulltext=False,
                 random_state=42, remove=(), download_if_missing=True,
-                total_size=None):
+                total_size=None, allow_infos_cache: bool = True,
+                allow_full_cache: bool = True, *args, **kwargs):
     """Load the infos from linkedinfo.co or local cache.
     Parameters
     ----------
@@ -238,7 +308,7 @@ def fetch_infos(data_home='data', subset='train', fulltext=False,
     infos_cache = os.path.join(infos_home, INFOS_CACHE)
     cache = None
 
-    if os.path.exists(infos_cache):
+    if allow_infos_cache and os.path.exists(infos_cache):
         with open(infos_cache, 'r') as f:
             cache = json.load(f)
 
@@ -253,11 +323,12 @@ def fetch_infos(data_home='data', subset='train', fulltext=False,
                 'enable data download.')
 
     if fulltext:
-        infos_cache = os.path.join(infos_home, INFOS_FULLTEXT_CACHE)
-        if os.path.exists(infos_cache):
-            with open(infos_cache, 'r') as f:
-                cache = json.load(f)
-                return cache
+        if allow_full_cache:
+            infos_cache = os.path.join(infos_home, INFOS_FULLTEXT_CACHE)
+            if os.path.exists(infos_cache):
+                with open(infos_cache, 'r') as f:
+                    cache = json.load(f)
+                    return cache
         cache_path_fulltext = os.path.join(cache_path, 'fulltext')
         target_path_fulltext = os.path.join(data_home, 'fulltext')
         if not os.path.exists(cache_path_fulltext):
@@ -351,12 +422,27 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     return allinfos
 
 
-def extract_text_from_html(source: str) -> str:
+def extract_bs4(source: str) -> str:
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(source, 'html.parser')
+    return soup.body.get_text()
+
+
+def extract_html2text(source: str) -> str:
     h = html2text.HTML2Text()
     h.ignore_links = True
     h.ignore_images = True
-    h.escape_snob = True
+    h.escape_all = False
+    h.ignore_anchors = True
+    h.ignore_emphasis = True
+    h.ignore_tables = True
+    h.mark_code = True
+
     return h.handle(source)
+
+
+def extract_text_from_html(source: str, method=extract_html2text) -> str:
+    return method(source)
 
 
 def retrieve_infoqcn_fulltext(referer_url: str) -> str:
@@ -396,7 +482,7 @@ fulltext_spec_dict = {
 def _retrieve_info_fulltext(info, target_dir='data/fulltext',
                             cache_path='data/cache/fulltext',
                             fallback_threshold=100, force_download=False,
-                            force_extract=False):
+                            force_extract=True):
     """Retrieve fulltext of an info by its url. The original html doc is stored 
     in cache_path named as info.key. The extracted text doc will be stored in 
     target_dir named as info.key.
@@ -483,8 +569,14 @@ if __name__ == '__main__':
     # df = fetch_infos(fulltext=True)
     # ds = df_tags()
     # infos = fetch_untagged_infos()
-    caching_untagged_infos()
+    # caching_untagged_infos()
 
+    cache_path = 'data/cache/fulltext'
+    cache_filename = '3df4551ab3c513422ecb39b00fc80443.html'
+    cache = os.path.join(cache_path, cache_filename)
+    with open(cache, 'r') as f:
+        tmp = extract_text_from_html(f.read(), method=extract_bs4)
+        print(tmp)
     # pass
 
     # %%
