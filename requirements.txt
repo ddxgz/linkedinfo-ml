@@ -1,8 +1,12 @@
 joblib==0.13.2
+-f https://download.pytorch.org/whl/torch_stable.html                                                                                                                                                             
+torch==1.4.0+cpu
+torchvision==0.5.0+cpu
+transformers
 html2text
 PySnooper
 requests
-scikit-learn==0.21.2
+scikit-learn==0.22.2.post1
 pandas
 Flask
 requests

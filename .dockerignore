@@ -1,0 +1,12 @@
+data/models/tags_textbased_pred_1.joblib.gz
+.git
+.ipynb_checkpoints/*
+/notebooks/*
+/unused/*
+Dockerfile
+.DS_Store
+.gitignore
+README.md
+env.*
+/devops/*
+credentials/

@@ -17,7 +17,7 @@ from dataset import LAN_ENCODING
 
 app = Flask('ML-prediction-service')
 app.secret_key = str(uuid.uuid4())
-app.debug = True
+app.debug =False
 wsgiapp = app.wsgi_app
 
 PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
@@ -130,11 +130,11 @@ def predict_language(info: dict) -> str:
     str of the language acronym, en or cn
     """
     text = f"{info['title']}. {info['description']}"
-    predicted = LAN_MODEL.predict([text])[0]
+    # predicted = LAN_MODEL.predict([text])[0]
 
-    for lan, enc in LAN_ENCODING.items():
-        if enc == predicted:
-            return lan
+    # for lan, enc in LAN_ENCODING.items():
+    #     if enc == predicted:
+    #         return lan
 
     return 'unknown_lan'
 
@@ -178,7 +178,7 @@ def pred_tags():
         return resp
 
 
-LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
+# LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_1.joblib.gz')
 TAGS_MODEL = TagsTextModelV2(

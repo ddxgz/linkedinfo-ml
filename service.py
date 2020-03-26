@@ -4,7 +4,6 @@ import subprocess
 
 import click
 
-from webapp import app
 
 
 PROJECT_ID = "data-science-258408"
@@ -25,6 +24,7 @@ def cli():
 @click.option('--local/--container', default=True)
 def run(local: bool):
     if local:
+        from webapp import app
         app.debug = True
         # app.run(host='0.0.0.0', threaded=True)
         app.run(host='0.0.0.0')
