@@ -17,7 +17,7 @@ from dataset import LAN_ENCODING
 
 app = Flask('ML-prediction-service')
 app.secret_key = str(uuid.uuid4())
-app.debug = True
+app.debug = False
 wsgiapp = app.wsgi_app
 
 PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
@@ -195,9 +195,9 @@ def home():
 # LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_1.joblib.gz')
-# TAGS_MODEL = TagsTextModelV2(
-#     modelfile='data/models/tags_textbased_pred_2.joblib.gz')
-TAGS_MODEL = TagsTestModel()
+TAGS_MODEL = TagsTextModelV2(
+    modelfile='data/models/tags_textbased_pred_2.joblib.gz')
+# TAGS_MODEL = TagsTestModel()
 
 if __name__ == '__main__':
     # use gevent wsgi server

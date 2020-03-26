@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Topic Tags Predication</title>
+    <link rel="stylesheet"
+          href="https://unpkg.com/element-ui@2.13.0/lib/theme-chalk/index.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/element-ui@2.13.0/lib/index.js"></script>
+</head>
+
+<body>
+    <el-container>
+        <el-main>
+            <div id="app">
+                <h2>
+                    This is a topic tags prediction service for technical articles.
+                    It uses BERT and is trained on the dataset of <a href="https://www.linkedinfo.co/"
+                       target="_blank">LinkedInfo.co</a>
+                </h2>
+                <div>
+
+                    <h3>Paste the text of an article to upload and get tag</h3>
+                    <div>
+                        <el-form ref="form"
+                                 :model="form">
+
+                            <!-- <el-form-item label="Title">
+                                    <el-input v-model="form.title"></el-input>
+                                </el-form-item> -->
+                            <!-- <el-form-item label="Article Text"> -->
+                            <el-form-item>
+                                <el-input type="textarea"
+                                          :autosize="{minRows: 5, maxRows:20}"
+                                          placeholder="Paste the text to upload and get tag"
+                                          v-model="form.description"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary"
+                                           @click="onSubmit">Predict</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+
+                </div>
+                <p></p>
+
+                <!-- <el-image style="width: 100px; height: 100px"
+                      :src="image"
+                      fit="contain"></el-image> -->
+
+                <el-row>
+                    <p></p>
+                </el-row>
+                <div v-if="isSuccess">
+                    <el-row justify="center"
+                            type="flex">
+                        <el-card class="box-card">
+                            <h2>The most possible tag is: </h2>
+                            <div class="tag-group">
+                                <el-tag v-for="item in info.tags"
+                                        type=""
+                                        size="medium"
+                                        effect="light">
+                                    <el-link :underline="false"
+                                             :href="'https://www.linkedinfo.co/tags/'+item"
+                                             target="_blank"> {{ item }} </el-link>
+                                </el-tag>
+                                <p>Click on a tag to find more</p>
+                            </div>
+                        </el-card>
+                    </el-row>
+
+                    <!-- <img :src="image" /> -->
+                    <!-- <el-alert title="The most possible lesion type is: "
+                              type="success"
+                              description="这是一句绕口令：黑灰化肥会挥发发灰黑化肥挥发；灰黑化肥会挥发发黑灰化肥发挥。 黑灰化肥会挥发发灰黑化肥黑灰挥发化为灰……">
+                    </el-alert> -->
+                </div>
+
+                <p></p>
+                <el-alert title="Warning!"
+                          type="error"
+                          center
+                          :closable="false"
+                          effect="dark"
+                          description="DO NOT take the result seriously, this is just for experimenting and having fun.">
+                </el-alert>
+                <p></p>
+                <el-alert v-if="isFailed"
+                          center
+                          show-icon="true"
+                          title="Upload failed!"
+                          type="error"
+                          effect="dark">
+                </el-alert>
+                <el-alert v-if="isExceeded"
+                          center
+                          show-icon="true"
+                          title="Upload too many, come again next time please!"
+                          type="warning"
+                          effect="dark">
+                </el-alert>
+            </div>
+
+
+        </el-main>
+
+    </el-container>
+    <script type="module">
+
+        const STATUS_INITIAL = 0, STATUS_SAVING = 1, STATUS_SUCCESS = 2, STATUS_FAILED = 3, STATUS_EXCEEDED = 4;
+        var app = new Vue({
+            el: '#app',
+            data() {
+                return {
+                    form: {
+                        title: '',
+                        description: '',
+                    },
+                    image: null,
+                    info: null,
+                    currentStatus: STATUS_INITIAL,
+                }
+            },
+            computed: {
+                isInitial() {
+                    return this.currentStatus === STATUS_INITIAL;
+                },
+                isSaving() {
+                    return this.currentStatus === STATUS_SAVING;
+                },
+                isSuccess() {
+                    return this.currentStatus === STATUS_SUCCESS;
+                },
+                isFailed() {
+                    return this.currentStatus === STATUS_FAILED;
+                },
+                isExceeded() {
+                    return this.currentStatus === STATUS_EXCEEDED;
+                }
+            },
+            methods: {
+                onSubmit() {
+                    console.log('submit!');
+                    axios.post('/predictions/tags',
+                        this.form,
+                        {
+                            headers: { 'Content-Type': 'application/json' }
+                        }
+                    ).then(response => {
+                        this.currentStatus = STATUS_SUCCESS;
+                        this.info = response.data;
+
+                    }
+                    ).catch(err => {
+                        this.currentStatus = STATUS_FAILED;
+                    })
+                },
+                showResult(response, file, fileList) {
+                    this.currentStatus = STATUS_SUCCESS;
+                    this.info = response;
+                },
+                onError(err, file, fileList) {
+                    this.currentStatus = STATUS_FAILED;
+                    alert("Error regarding file: " + file)
+                },
+                onExceed(files, fileList) {
+                    this.currentStatus = STATUS_EXCEEDED;
+                }
+            }
+        })
+    </script>
+
+    <style>
+        #app {
+            text-align: center;
+        }
+
+        .text {
+            font-size: 20px;
+        }
+
+        .item {
+            padding: 18px 0;
+        }
+
+        .box-card {
+            width: 480px;
+        }
+    </style>
+</body>
+
+</html>
