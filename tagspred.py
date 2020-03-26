@@ -173,6 +173,24 @@ def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
     m = joblib.dump(clf, dump_target, compress=3)
 
 
+def save_pretrained():
+    from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel, BertConfig
+
+    # PRETRAINED_BERT_WEIGHTS = 'distilbert-base-uncased'
+    PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
+    # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-4_H-256_A-4"
+    tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+    model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+
+    model_path = f'./data/models/{PRETRAINED_BERT_WEIGHTS}/'
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+
+    tokenizer.save_pretrained(model_path)
+    model.save_pretrained(model_path)
+
+
 if __name__ == '__main__':
     # model_search()
-    model_persist_v2()
+    # model_persist_v2()
+    save_pretrained()

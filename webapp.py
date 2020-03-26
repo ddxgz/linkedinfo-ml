@@ -20,7 +20,9 @@ app.secret_key = str(uuid.uuid4())
 app.debug = False
 wsgiapp = app.wsgi_app
 
-PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
+# PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
+PRETRAINED_BERT_WEIGHTS = "./data/models/google/bert_uncased_L-2_H-128_A-2/"
+# PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
 
 
 def singleton(cls, *args, **kwargs):
