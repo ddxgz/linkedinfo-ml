@@ -6,7 +6,7 @@ import json
 import uuid
 
 import numpy as np
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from gevent.pywsgi import WSGIServer as Geventwsgiserver
 import joblib
 import torch
@@ -17,7 +17,7 @@ from dataset import LAN_ENCODING
 
 app = Flask('ML-prediction-service')
 app.secret_key = str(uuid.uuid4())
-app.debug =False
+app.debug = True
 wsgiapp = app.wsgi_app
 
 PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
@@ -50,6 +50,15 @@ class PredictModel(ABC):
         else:
             raise FileNotFoundError('Model file not exists! The model should be'
                                     'place under ./data/models/')
+
+
+@singleton
+class TagsTestModel(PredictModel):
+    def __init__(self):
+        pass
+
+    def predict(self, text):
+        return [['test-tags', 'machine-learning', 'python']]
 
 
 @singleton
@@ -157,7 +166,7 @@ def predict_tags(info: dict) -> str:
 
     predicted = TAGS_MODEL.predict([text])
     # inverse transform tags
-    return predicted
+    return predicted[0]
 
 
 @app.route('/predictions/language', methods=['POST'])
@@ -178,15 +187,21 @@ def pred_tags():
         return resp
 
 
+@app.route('/', methods=['GET'])
+def home():
+    return send_from_directory('vuejs', 'home.html')
+
+
 # LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_1.joblib.gz')
-TAGS_MODEL = TagsTextModelV2(
-    modelfile='data/models/tags_textbased_pred_2.joblib.gz')
+# TAGS_MODEL = TagsTextModelV2(
+#     modelfile='data/models/tags_textbased_pred_2.joblib.gz')
+TAGS_MODEL = TagsTestModel()
 
 if __name__ == '__main__':
     # use gevent wsgi server
-    httpserver = Geventwsgiserver(('0.0.0.0', 8070), wsgiapp)
+    httpserver = Geventwsgiserver(('0.0.0.0', 5000), wsgiapp)
     httpserver.serve_forever()
 
     # with open('data/cache/infos_80_90.json', 'r') as f:
