@@ -172,6 +172,9 @@ def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
     dump_target = os.path.join(datahome, f'{filename}.joblib.gz')
     m = joblib.dump(clf, dump_target, compress=3)
 
+    dump_target_mlb = os.path.join(datahome, f'{filename}_mlb.joblib.gz')
+    m = joblib.dump(ds.mlb, dump_target_mlb, compress=3)
+
 
 def save_pretrained():
     from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel, BertConfig
