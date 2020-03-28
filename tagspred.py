@@ -21,6 +21,7 @@ import joblib
 import matplotlib.pyplot as plt
 
 import dataset
+from mltb.model_utils import download_once_pretrained_transformers
 
 # # logging.basicConfig(level=logging.INFO)
 # handler = logging.FileHandler(filename='experiment.log')
@@ -108,7 +109,7 @@ def model_persist(filename='tags_textbased_pred_1', datahome='data/models'):
     m = joblib.dump(clf, dump_target, compress=3)
 
 
-def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
+def model_persist_v2(filename='tags_textbased_pred_3', datahome='data/models'):
     import numpy as np
     import torch
     from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
@@ -117,14 +118,18 @@ def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
 
     DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    ds = dataset.df_tags(content_length_threshold=100, lan='en',
-                         partial_len=1000)
+    # ds = dataset.df_tags(content_length_threshold=100, lan='en',
+    #                      partial_len=1000)
 
+    ds = dataset.ds_info_tags(from_batch_cache='fulltext', content_length_threshold=100, lan='en',
+                              filter_tags_threshold=2, partial_len=3000, total_size=None)
     # %%
     from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel, BertConfig
 
     # PRETRAINED_BERT_WEIGHTS = 'distilbert-base-uncased'
-    PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
+    # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
+    PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
+        "google/bert_uncased_L-4_H-256_A-4")
     # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-4_H-256_A-4"
     # tokenizer = DistilBertTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
     # model = DistilBertModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
@@ -133,10 +138,11 @@ def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
     # config = BertConfig(max_position_embeddings=2048)
     model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
 
-    col_text = 'partial_text'
+    # col_text = 'partial_text'
+    col_text = 'fulltext'
     tokenized = ds.data[col_text].apply(
         (lambda x: tokenizer.encode(x, add_special_tokens=True,
-                                    max_length=128)))
+                                    max_length=256)))
 
     # %%
     max_len = 0
@@ -162,7 +168,7 @@ def model_persist_v2(filename='tags_textbased_pred_2', datahome='data/models'):
     from sklearn import metrics
 
     # Build vectorizer classifier pipeline
-    clf = OneVsRestClassifier(LinearSVC(penalty='l1', C=1, dual=False))
+    clf = OneVsRestClassifier(LinearSVC(penalty='l2', C=0.1, dual=True))
 
     clf.fit(features, ds.target)
 
@@ -195,5 +201,5 @@ def save_pretrained():
 
 if __name__ == '__main__':
     # model_search()
-    # model_persist_v2()
-    save_pretrained()
+    model_persist_v2()
+    # save_pretrained()

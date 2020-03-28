@@ -1,3 +1,4 @@
+exp/
 data/models/tags_textbased_pred_1.joblib.gz
 .git
 .ipynb_checkpoints/*

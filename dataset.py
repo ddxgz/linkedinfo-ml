@@ -577,7 +577,7 @@ def _retrieve_untagged_infos(target_dir, cache_path):
     return {'content': cache['content'][offset:offset + size]}
 
 
-@pysnooper.snoop()
+# @pysnooper.snoop()
 def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     """Call API to retrieve infos data. Retrieve a fragment of infos in multiple
     API calls, caches each fragment in cache_path. Combine all caches into one

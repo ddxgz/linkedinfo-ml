@@ -12,6 +12,7 @@ import joblib
 import torch
 from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
 
+from mltb.model_utils import download_once_pretrained_transformers
 import dataset
 from dataset import LAN_ENCODING
 
@@ -21,8 +22,13 @@ app.debug = False
 wsgiapp = app.wsgi_app
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
-PRETRAINED_BERT_WEIGHTS = "./data/models/google/bert_uncased_L-2_H-128_A-2/"
+# PRETRAINED_BERT_WEIGHTS = "./data/models/google/bert_uncased_L-2_H-128_A-2/"
 # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
+PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
+    "google/bert_uncased_L-4_H-256_A-4")
+
+MODEL_FILE = 'data/models/tags_textbased_pred_3.joblib.gz'
+MLB_FILE = 'data/models/tags_textbased_pred_3_mlb.joblib.gz'
 
 
 def singleton(cls, *args, **kwargs):
@@ -85,16 +91,22 @@ class TagsTextModelV2(PredictModel):
         self.tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
         self.feat_model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
 
-        ds = dataset.df_tags(content_length_threshold=100, lan='en',
-                             partial_len=1000)
-        self.mlb = ds.mlb
+        # ds = dataset.ds_info_tags(from_batch_cache='fulltext', content_length_threshold=100, lan='en',
+        #                           filter_tags_threshold=2, partial_len=3000, total_size=None)
+
+        if os.path.exists(MLB_FILE):
+            mlb = joblib.load(MLB_FILE)
+        else:
+            raise FileNotFoundError('MLB Model file not exists! The model should be'
+                                    'place under ./data/models/')
+        self.mlb = mlb
 
     def predict(self, text):
         col_text = 'partial_text'
         tokenized = []
         for i in text:
             tokenized.append(self.tokenizer.encode(i, add_special_tokens=True,
-                                                   max_length=128))
+                                                   max_length=256))
         max_len = 0
         for i in tokenized:
             if len(i) > max_len:
@@ -198,7 +210,7 @@ def home():
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_1.joblib.gz')
 TAGS_MODEL = TagsTextModelV2(
-    modelfile='data/models/tags_textbased_pred_2.joblib.gz')
+    modelfile=MODEL_FILE)
 # TAGS_MODEL = TagsTestModel()
 
 if __name__ == '__main__':
