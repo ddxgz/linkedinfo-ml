@@ -3,6 +3,7 @@ A topic tags prediction service for technical articles. Find the service at
 https://ml.linkedinfo.co/ 
 ** Uage
 
+#+BEGIN_SRC shell
 Usage: service.py [OPTIONS] COMMAND [ARGS]...
 
 Commands:
@@ -10,14 +11,14 @@ Commands:
   deploy
   run
 
-----
+-----
 Usage: service.py run [OPTIONS]
 
 Options:
   --local / --container
   --help                 Show this message and exit.
 
-----
+-----
 Usage: service.py build [OPTIONS]
 
 Options:
@@ -25,6 +26,8 @@ Options:
   --run
   --deploy
   --help             Show this message and exit.
+
+#+END_SRC
 
 ** TODOs
  - [X] Language identification model for info text
