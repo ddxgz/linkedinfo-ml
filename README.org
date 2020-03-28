@@ -1,5 +1,31 @@
 * Machine Learning models for Linkedinfo.co 
-A topic tags prediction service for technical articles. Find the service at https://ml.linkedinfo.co/ 
+A topic tags prediction service for technical articles. Find the service at
+https://ml.linkedinfo.co/ 
+** Uage
+
+Usage: service.py [OPTIONS] COMMAND [ARGS]...
+
+Commands:
+  build
+  deploy
+  run
+
+----
+Usage: service.py run [OPTIONS]
+
+Options:
+  --local / --container
+  --help                 Show this message and exit.
+
+----
+Usage: service.py build [OPTIONS]
+
+Options:
+  --local / --cloud
+  --run
+  --deploy
+  --help             Show this message and exit.
+
 ** TODOs
  - [X] Language identification model for info text
  - [ ] Text-based info tags prediction model 
@@ -7,8 +33,16 @@ A topic tags prediction service for technical articles. Find the service at http
     - [X] Gradient Boosting
     - [X] BERT (bert-tiny now)
     - [ ] Stacking models with other feature like title, author, host, etc.
- - [ ] Graph-based info tags prediction model 
- - [ ] Try different sampling methods
+    - [ ] separate models for en and cn
+    - [ ] retrieve all new infos
+    - [ ] filter minority tags
+    - [ ] text augmentation and oversampling
+    - [ ] try different classifier layer when there's more data
+    - [ ] search more suitable data for training
+   - [ ] Graph-based info tags prediction model 
+   - [ ] Try different sampling methods
  - [X] Migrate to GCloud run
+ - [ ] limit length of text
+ - [ ] accept url to predict with extraction
 ** Info tags prediction
 Model is trained offline and persisted. The persisted model should be placed under =./data/models/= to be loaded by the Web service.
