@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
+import pysnooper
 
 
 logger = logging.getLogger('dataset')
@@ -55,24 +56,6 @@ class Dataset:
     mlb: MultiLabelBinarizer
 
 
-#TODO: not finished
-def df_tags_fasttext(ds: Dataset, test_size: float = 0.3):
-    ft_dir = os.path.join(DATA_DIR, 'fasttext')
-    if not os.path.exists(ft_dir):
-        os.makedirs(ft_dir)
-
-    train_file = os.path.join(ft_dir, 'tags.train')
-    test_file = os.path.join(ft_dir, 'tags.test')
-
-    X_train, X_test, Y_train, Y_test = train_test_split(
-        ds.data, ds.target, test_size=test_size, random_state=RAND_STATE)
-
-    for X, Y, filename in zip([X_train, X_test], [Y_train, Y_test], [train_file, test_file]):
-        with open(filename, 'w') as f:
-            for record, y in zip(X, Y):
-                f.writeline(record['fullttext'])
-
-
 def clean_text(text):
     text = text.replace('\\n', '')
     text = text.replace('\\', '')
@@ -89,13 +72,93 @@ def clean_text(text):
     return text
 
 
+# TODO
 def remove_code_sec(text):
-
     return text
 
 
 # TODO: add option to filter out tags that has very few infos
-# TODO: add language filter option to get only selected languages
+def ds_info_tags(from_batch_cache: str = 'fulltext',
+                 tag_type: str = 'tagID', content_length_threshold: int = 100,
+                 lan: str = None,
+                 partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
+    """
+    All the data relate to identify tags of an info.
+
+    Text data: title, description / full text
+    scikit-learn MultiLabelBinarizer encoding: tags, creators(not used currently)
+
+    Parameters
+    ----------
+    tag_type : optional, label or tagID, default: 'tagID'
+        used to indicate which is used for tag encoding, should have no influence 
+        on the results.
+
+    lan: optional, select from cn, en or None. None == both
+
+    partial_len : optional, used to limit the length of fulltext to include.
+        If not None, the title of an info will be put in the beginning.
+
+    remove_code: optional, set to remove code sections in the fulltext. The
+        current impl removes only code sections that have marked as code sections
+
+    Returns
+    -------
+    pandas.DataFrame: df with the following attribute:
+        - df.data:
+        - df.target: encoding of tagsID
+        - df.target_names: tagsID
+        - df.target_decoded: the list of lists contains tagsID for each info
+    """
+    if tag_type not in ['label', 'tagID']:
+        logger.warning(
+            'tag_type should be either label or tagID, use default: "tagID"')
+        tag_type = 'tagID'
+
+    cache = fetch_infos(from_batch_cache=from_batch_cache,
+                      fulltext=True, *args, **kwargs)
+
+    data_lst = []
+    tags_lst = []
+    for info in cache['content']:
+        # logger.info(info['title'])
+        if lan:
+            if info['language'] != lan:
+                continue
+        if len(info['fulltext']) < content_length_threshold:
+            continue
+        if len(info['description']) < content_length_threshold:
+            continue
+        if remove_code:
+            info['fulltext'] = remove_code_sec(info['fulltext'])
+        info['fulltext'] = clean_text(info['fulltext'])
+        if partial_len is not None and partial_len > 0:
+            info['partial_text'] = info['title'] + '. '
+            if partial_len < len(info['fulltext']):
+                info['partial_text'] += info['fulltext'][:partial_len]
+            else:
+                info['partial_text'] += info['fulltext']
+
+        data_lst.append({'title': info['title'],
+                         'description': info['description'],
+                         'language': info['language'],
+                         'fulltext': info['fulltext'],
+                         'partial_text': info['partial_text']})
+        tags_lst.append([tag[tag_type] for tag in info['tags']])
+
+    df_data = pd.DataFrame(data_lst)
+    df_tags = pd.DataFrame(tags_lst)
+    # df_tags.fillna(value=pd.np.nan, inplace=True)
+    # print(df_tags)
+    mlb = MultiLabelBinarizer()
+    Y = mlb.fit_transform(tags_lst)
+
+    ds = Dataset(df_data, Y, mlb.classes_, tags_lst, mlb)
+
+    return ds
+
+
+#TODO: Deprecated
 def df_tags(tag_type: str = 'tagID', content_length_threshold: int = 100, lan: str = None,
             partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
@@ -252,10 +315,119 @@ def fetch_untagged_infos(data_home='data', fulltext=False,
     return cache
 
 
-def fetch_infos(data_home='data', subset='train', fulltext=False,
+def fetch_infos(data_home='data', from_batch_cache: str = None, fulltext=True,
+                save_cache: bool = True, force_download=False,
+                force_extract=True,
                 random_state=42, remove=(), download_if_missing=True,
                 total_size=None, allow_infos_cache: bool = True,
-                allow_full_cache: bool = True, *args, **kwargs):
+                *args, **kwargs):
+    """Load the infos from linkedinfo.co or local cache.
+    Parameters
+    ----------
+    data_home : optional, default: 'data'
+        Specify a download and cache folder for the datasets. If None,
+        all scikit-learn data is stored in './data' subfolders.
+
+    from_batch_cache: 'fulltext','info', None, optional
+        Read from aggregated all infos batch cache file. Download or reload from
+        small cache files.
+
+    fulltext : optional, False by default
+        If True, it will fectch the full text of each info. 
+
+    random_state : int, RandomState instance or None (default)
+        Determines random number generation for dataset shuffling. Pass an int
+        for reproducible output across multiple function calls.
+        See :term:`Glossary <random_state>`.
+
+    remove : tuple
+        May contain any subset of ('headers', 'footers', 'quotes'). Each of
+        these are kinds of text that will be detected and removed from the
+        newsgroup posts, preventing classifiers from overfitting on
+        metadata.
+
+        'headers' removes newsgroup headers, 'footers' removes blocks at the
+        ends of posts that look like signatures, and 'quotes' removes lines
+        that appear to be quoting another post.
+
+        'headers' follows an exact standard; the other filters are not always
+        correct.
+
+    download_if_missing : optional, True by default
+        If False, raise an IOError if the data is not locally available
+        instead of trying to download the data from the source site.
+
+    Returns
+    -------
+    Dict: all infos w/ or w/o fulltext 
+    """
+    data_home = data_home
+    cache_path = os.path.join(data_home, 'cache')
+    infos_home = os.path.join(data_home, 'infos')
+    cache = None
+
+    if from_batch_cache == 'fulltext':
+        infos_cache = os.path.join(infos_home, INFOS_FULLTEXT_CACHE)
+        if os.path.exists(infos_cache):
+            with open(infos_cache, 'r') as f:
+                cache = json.load(f)
+                return cache
+        else:
+            return cache
+
+    if from_batch_cache == 'info':
+        infos_cache = os.path.join(infos_home, INFOS_CACHE)
+        if os.path.exists(infos_cache):
+            with open(infos_cache, 'r') as f:
+                cache = json.load(f)
+                return cache
+        else:
+            return cache
+
+    logger.info("Calling API to retrieve infos.")
+    cache = _retrieve_infos(target_dir=infos_home,
+                            cache_path=cache_path, fragment_size=10,
+                            total_size=total_size
+                            )
+    if save_cache:
+        filename = f'infos_0_{len(cache["content"])}.json'
+        infos_cache = os.path.join(infos_home, filename)
+        logger.info('Saving info cache without fulltext to file {infos_cache}')
+        with open(infos_cache, 'w') as f:
+            json.dump(cache, f)
+
+    if fulltext:
+        logger.info("Retriving fulltext")
+        cache_path_fulltext = os.path.join(cache_path, 'fulltext')
+        target_path_fulltext = os.path.join(data_home, 'fulltext')
+
+        if not os.path.exists(cache_path_fulltext):
+            os.makedirs(cache_path_fulltext)
+        if not os.path.exists(target_path_fulltext):
+            os.makedirs(target_path_fulltext)
+
+        for info in cache['content']:
+            info['fulltext'] = _retrieve_info_fulltext(info,
+                                                       target_dir=target_path_fulltext,
+                                                       cache_path=cache_path_fulltext,
+                                                       force_download=False,
+                                                       force_extract=True)
+        if save_cache:
+            filename = f'infos_0_{len(cache["content"])}_fulltext.json'
+            infos_cache = os.path.join(infos_home, filename)
+            logger.info(
+                'Saving info cache with fulltext to file {infos_cache}')
+            with open(infos_cache, 'w') as f:
+                json.dump(cache, f)
+
+    return cache
+
+
+# TODO: Deprecated
+def fetch_infos_dep(data_home='data', subset='train', fulltext=False,
+                    random_state=42, remove=(), download_if_missing=True,
+                    total_size=None, allow_infos_cache: bool = True,
+                    allow_full_cache: bool = True, *args, **kwargs):
     """Load the infos from linkedinfo.co or local cache.
     Parameters
     ----------
@@ -358,6 +530,7 @@ def _retrieve_untagged_infos(target_dir, cache_path):
     return {'content': cache['content'][offset:offset + size]}
 
 
+@pysnooper.snoop()
 def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     """Call API to retrieve infos data. Retrieve a fragment of infos in multiple
     API calls, caches each fragment in cache_path. Combine all caches into one
@@ -365,6 +538,9 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
 
     Cache file naming: infos_{offset}_{offset+fragment_size}.json
     Target file naming: infos_{offset}_{size}.json
+
+    Note: fragment_size support only 10 for now due to the restriction of
+    linkedinfo.co API
     """
     offset = 0
     ret_size = fragment_size
