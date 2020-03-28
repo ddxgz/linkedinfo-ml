@@ -104,10 +104,12 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
 
     logger.debug(f'records to remove: {records_rm}')
     df_data = df_data.drop(records_rm)
-    for i in records_rm:
-        tags_list.pop(i)
+    new_tags_list = []
+    for l in tags_list:
+        if len(l) > 0:
+            new_tags_list.append(l)
 
-    return df_data, tags_list
+    return df_data, new_tags_list
 
 
 # TODO: add option to filter out tags that has very few infos
