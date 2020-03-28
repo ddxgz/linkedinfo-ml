@@ -28,15 +28,15 @@ handler = logging.FileHandler(filename='dataset.log')
 handler.setLevel(logging.INFO)
 logger.addHandler(handler)
 consoleHandler = logging.StreamHandler()
-consoleHandler.setLevel(logging.INFO)
+consoleHandler.setLevel(logging.DEBUG)
 logger.addHandler(consoleHandler)
 
 # logging.basicConfig(level=logging.INFO)
 
 RAND_STATE = 20200122
 DATA_DIR = 'data'
-INFOS_CACHE = 'infos_0_3353.json'
-INFOS_FULLTEXT_CACHE = 'infos_0_3353_fulltext.json'
+INFOS_CACHE = 'infos_0_3790.json'
+INFOS_FULLTEXT_CACHE = 'infos_0_3790_fulltext.json'
 # UNTAGGED_INFOS_FULLTEXT_CACHE = 'untagged_infos_fulltext.json'
 UNTAGGED_INFOS_CACHE = 'untagged_infos.json'
 
@@ -66,7 +66,7 @@ def clean_text(text):
     #text = re.sub('\'','',text)
     # text = re.sub(r'\d+', ' __number__ ', text) #replaces numbers
     #text = re.sub('\W', ' ', text)
-    text = re.sub(' +', ' ', text)
+    # text = re.sub(' +', ' ', text)
     text = text.replace('\t', '')
     text = text.replace('\n', '')
     return text
@@ -77,10 +77,43 @@ def remove_code_sec(text):
     return text
 
 
+def filter_tags(df_data, tags_list, threshold: int = 0):
+    from collections import Counter
+
+    new_tglst = [item for subl in tags_list for item in subl]
+    c = Counter(new_tglst)
+
+    tags_rm = []
+    records_rm = []
+    thr = 2
+    for t in c.most_common()[::-1]:
+        if t[1] > thr:
+            break
+        tags_rm.append(t[0])
+
+    logger.debug(f'tags to remove: {tags_rm}')
+
+    for tag_rm in tags_rm:
+        for i, tags in enumerate(tags_list):
+            if tag_rm in tags:
+                # remove tag in list
+                tags.remove(tag_rm)
+                if len(tags) == 0:
+                    # remove info record
+                    records_rm.append(i)
+
+    logger.debug(f'records to remove: {records_rm}')
+    df_data = df_data.drop(records_rm)
+    for i in records_rm:
+        tags_list.pop(i)
+
+    return df_data, tags_list
+
+
 # TODO: add option to filter out tags that has very few infos
 def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
-                 lan: str = None,
+                 lan: str = None, filter_tags_threshold: int = None,
                  partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
@@ -90,16 +123,22 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
 
     Parameters
     ----------
+    from_batch_cache: 'fulltext','info', None, optional
+        Read from aggregated all infos batch cache file. Download or reload from
+        small cache files.
+
     tag_type : optional, label or tagID, default: 'tagID'
         used to indicate which is used for tag encoding, should have no influence 
         on the results.
 
     lan: optional, select from cn, en or None. None == both
 
+    filter_tags_threshold : filter tags that appear at least times
+
     partial_len : optional, used to limit the length of fulltext to include.
         If not None, the title of an info will be put in the beginning.
 
-    remove_code: optional, set to remove code sections in the fulltext. The
+    remove_code: Not completed. optional, set to remove code sections in the fulltext. The
         current impl removes only code sections that have marked as code sections
 
     Returns
@@ -116,7 +155,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
         tag_type = 'tagID'
 
     cache = fetch_infos(from_batch_cache=from_batch_cache,
-                      fulltext=True, *args, **kwargs)
+                        fulltext=True, *args, **kwargs)
 
     data_lst = []
     tags_lst = []
@@ -147,7 +186,13 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
         tags_lst.append([tag[tag_type] for tag in info['tags']])
 
     df_data = pd.DataFrame(data_lst)
+
+    if filter_tags_threshold is not None and filter_tags_threshold > 0:
+        df_data, tags_lst = filter_tags(
+            df_data, tags_lst, threshold=filter_tags_threshold)
+
     df_tags = pd.DataFrame(tags_lst)
+
     # df_tags.fillna(value=pd.np.nan, inplace=True)
     # print(df_tags)
     mlb = MultiLabelBinarizer()
