@@ -79,6 +79,13 @@
                               description="这是一句绕口令：黑灰化肥会挥发发灰黑化肥挥发；灰黑化肥会挥发发黑灰化肥发挥。 黑灰化肥会挥发发灰黑化肥黑灰挥发化为灰……">
                     </el-alert> -->
                 </div>
+                <el-alert v-if="isSaving"
+                          center
+                          show-icon="true"
+                          title="Predicting..."
+                          type="info"
+                          effect="dark">
+                </el-alert>
 
                 <p></p>
                 <el-alert title="Warning!"
@@ -120,7 +127,6 @@
                         title: '',
                         description: '',
                     },
-                    image: null,
                     info: null,
                     currentStatus: STATUS_INITIAL,
                 }
@@ -144,7 +150,8 @@
             },
             methods: {
                 onSubmit() {
-                    console.log('submit!');
+                    // console.log('submit!');
+                    this.currentStatus = STATUS_SAVING;
                     axios.post('/predictions/tags',
                         this.form,
                         {
