@@ -568,14 +568,16 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
                 raise ConnectionError('Get infos not succeed!')
             # store cache
             infos_new = res.json()
+            ret_size = len(infos_new['content'])
+            cache_filename = f'infos_{offset}_{offset+ret_size}.json'
+            cache_pathfile = os.path.join(cache_path, cache_filename)
             with open(cache_pathfile, 'w') as f:
                 json.dump(infos_new, f)
-            ret_size = len(infos_new['content'])
         # push cache file name
         cache_files.append(cache_pathfile)
 
         if total_size:
-            if total_size <= offset + fragment_size:
+            if total_size <= offset + ret_size:
                 break
 
         offset += fragment_size
