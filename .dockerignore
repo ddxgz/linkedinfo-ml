@@ -1,5 +1,8 @@
 exp/
 data/models/tags_textbased_pred_1.joblib.gz
+data/cache/
+data/fulltext/
+data/infos/
 .git
 .ipynb_checkpoints/*
 /notebooks/*

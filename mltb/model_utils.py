@@ -2,9 +2,19 @@ import os
 
 import numpy as np
 import torch
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, BertConfig
 
 import dataset
+
+
+def get_tokenizer_model(model_name: str = "google/bert_uncased_L-2_H-128_A-2",
+                        config: BertConfig = None):
+    model_name = download_once_pretrained_transformers(model_name)
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+
+    return tokenizer, model
 
 
 def save_pretrained_bert(model_name: str) -> str:

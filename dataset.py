@@ -115,6 +115,8 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
 
 
 def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0.3, *args, **kwargs):
+    kwargs.pop('aug_level')
+
     ds = ds_info_tags(aug_level=0, *args, **kwargs)
 
     if 'random_state' in kwargs.keys():
@@ -150,7 +152,7 @@ def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0
     features = pd.concat([train_features, test_features], ignore_index=True)
     labels = np.append(train_labels, test_labels, axis=0)
 
-    return features, labels, len_test
+    return features, labels, len_test, ds.mlb
 
 
 def augment_records(df_data, df_tags, tags_list, level: int = 0):

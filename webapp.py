@@ -27,8 +27,8 @@ wsgiapp = app.wsgi_app
 PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
     "google/bert_uncased_L-4_H-256_A-4")
 
-MODEL_FILE = 'data/models/tags_textbased_pred_3.joblib.gz'
-MLB_FILE = 'data/models/tags_textbased_pred_3_mlb.joblib.gz'
+MODEL_FILE = 'data/models/tags_textbased_pred_4.joblib.gz'
+MLB_FILE = 'data/models/tags_textbased_pred_4_mlb.joblib.gz'
 
 
 def singleton(cls, *args, **kwargs):
