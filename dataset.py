@@ -16,6 +16,7 @@ import re
 import requests
 import html2text
 from urllib.parse import urlparse
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
@@ -113,6 +114,45 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
     return df_data, new_tags_list
 
 
+def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0.3, *args, **kwargs):
+    ds = ds_info_tags(aug_level=0, *args, **kwargs)
+
+    if 'random_state' in kwargs.keys():
+        random_state = kwargs.pop('random_state')
+    else:
+        random_state = RAND_STATE
+
+    train_features, test_features, train_labels, test_labels = train_test_split(
+        ds.data, ds.target, test_size=test_ratio, random_state=random_state)
+
+    len_test = test_features.shape[0]
+    len_ori = train_features.shape[0]
+
+    train_features = pd.concat([train_features] * (int(level) + 1),
+                               ignore_index=True)
+    train_labels = np.concatenate([train_labels] * (int(level) + 1),
+                                  axis=0)
+
+    def text_random_crop(rec):
+        sents = nltk.word_tokenize(rec)
+        # sents = nltk.sent_tokenize(rec)
+        size = len(sents)
+        chop_size = size // 10
+        chop_offset = random.randint(0, chop_size)
+        sents_chop = sents[chop_offset:size - chop_offset - 1]
+
+        # return rec['fulltext'][100:]
+        return ' '.join(sents_chop)
+
+    train_features.iloc[len_ori:][col] = train_features.iloc[len_ori:][col].apply(
+        text_random_crop)
+
+    features = pd.concat([train_features, test_features], ignore_index=True)
+    labels = np.append(train_labels, test_labels, axis=0)
+
+    return features, labels, len_test
+
+
 def augment_records(df_data, df_tags, tags_list, level: int = 0):
     nltk.download('punkt')
 
@@ -144,7 +184,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
                  lan: str = None, filter_tags_threshold: int = None,
                  aug_level: int = 0,
-                 concate_title:bool = False,
+                 concate_title: bool = False,
                  partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
@@ -205,9 +245,9 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
 
         if partial_len is not None and partial_len > 0:
             if partial_len < len(info['fulltext']):
-                info['partial_text'] += info['fulltext'][:partial_len]
+                info['partial_text'] = info['fulltext'][:partial_len]
             else:
-                info['partial_text'] += info['fulltext']
+                info['partial_text'] = info['fulltext']
 
         if concate_title:
             info['fulltext'] = info['title'] + '. ' + info['fulltext']
