@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
+import nltk
 import pysnooper
 
 
@@ -112,10 +113,37 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
     return df_data, new_tags_list
 
 
-# TODO: add option to filter out tags that has very few infos
+def augment_records(df_data, df_tags, tags_list, level: int = 0):
+    nltk.download('punkt')
+
+    len_ori = df_data.shape[0]
+
+    df_data = df_data.append(df_data * int(level),
+                             ignore_index=False)
+    df_tags = df_tags.append(df_tags * int(level),
+                           ignore_index=False)
+    tags_list *= level + 1
+
+    def text_random_crop(rec):
+        sents = nltk.sent_tokenize(rec)
+        size = len(sents)
+        chop_size = size // 10
+        chop_offset = random.randint(0, chop_size)
+        sents_chop = sents[chop_offset:size - chop_offset - 1]
+
+        # return rec['fulltext'][100:]
+        return ' '.join(sents_chop)
+
+    df_data.iloc[len_ori:]['fulltext'] = df_data.iloc[len_ori:]['fulltext'].apply(
+        text_random_crop)
+
+    return df_data, df_tags, tags_list
+
+
 def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
                  lan: str = None, filter_tags_threshold: int = None,
+                 aug_level: int = 0,
                  partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
@@ -194,6 +222,10 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
             df_data, tags_lst, threshold=filter_tags_threshold)
 
     df_tags = pd.DataFrame(tags_lst)
+
+    if aug_level > 0:
+        df_data, df_tags, tags_lst = augment_records(
+            df_data, df_tags, tags_lst, level=aug_level)
 
     # df_tags.fillna(value=pd.np.nan, inplace=True)
     # print(df_tags)
