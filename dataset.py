@@ -121,7 +121,7 @@ def augment_records(df_data, df_tags, tags_list, level: int = 0):
     df_data = df_data.append(df_data * int(level),
                              ignore_index=False)
     df_tags = df_tags.append(df_tags * int(level),
-                           ignore_index=False)
+                             ignore_index=False)
     tags_list *= level + 1
 
     def text_random_crop(rec):
@@ -144,6 +144,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
                  lan: str = None, filter_tags_threshold: int = None,
                  aug_level: int = 0,
+                 concate_title:bool = False,
                  partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
@@ -201,12 +202,17 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
         if remove_code:
             info['fulltext'] = remove_code_sec(info['fulltext'])
         info['fulltext'] = clean_text(info['fulltext'])
+
         if partial_len is not None and partial_len > 0:
-            info['partial_text'] = info['title'] + '. '
             if partial_len < len(info['fulltext']):
                 info['partial_text'] += info['fulltext'][:partial_len]
             else:
                 info['partial_text'] += info['fulltext']
+
+        if concate_title:
+            info['fulltext'] = info['title'] + '. ' + info['fulltext']
+            info['description'] = info['title'] + '. ' + info['description']
+            info['partial_text'] = info['title'] + '. ' + info['partial_text']
 
         data_lst.append({'title': info['title'],
                          'description': info['description'],
