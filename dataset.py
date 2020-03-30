@@ -155,6 +155,82 @@ def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0
     return features, labels, len_test, ds.mlb
 
 
+def augmented_samples_np(features, labels, level: int = 0,
+                         crop_ratio: float = 0.1, *args, **kwargs):
+    nltk.download('punkt')
+
+    if 'random_state' in kwargs.keys():
+        random_state = kwargs.pop('random_state')
+    else:
+        random_state = RAND_STATE
+
+    len_ori = features.shape[0]
+
+    features = np.concatenate([features] * (int(level) + 1), axis=0)
+    labels = np.concatenate([labels] * (int(level) + 1), axis=0)
+
+    def text_token_cat(rec):
+        sents = nltk.word_tokenize(rec[1])
+        return ' '.join(sents)
+
+    def text_random_crop(rec):
+        sents = nltk.word_tokenize(rec[1])
+        # sents = nltk.sent_tokenize(rec)
+        size = len(sents)
+        chop_size = size // (1 / crop_ratio)
+        chop_offset = random.randint(0, chop_size)
+        sents_chop = sents[chop_offset:size - chop_offset - 1]
+
+        # return rec['fulltext'][100:]
+        # rec[0]=' '.join(sents_chop)
+        # return rec
+        return ' '.join(sents_chop)
+
+    features[:len_ori, 1] = np.apply_along_axis(
+        text_token_cat, 1, features[:len_ori])
+    features[len_ori:, 1] = np.apply_along_axis(
+        text_random_crop, 1, features[len_ori:])
+
+    return features, labels
+
+
+def augmented_samples(features, labels, col: str = 'description', level: int = 0,
+                      crop_ratio: float = 0.1, *args, **kwargs):
+    nltk.download('punkt')
+
+    if 'random_state' in kwargs.keys():
+        random_state = kwargs.pop('random_state')
+    else:
+        random_state = RAND_STATE
+
+    len_ori = features.shape[0]
+
+    features = pd.concat([features] * (int(level) + 1), ignore_index=True)
+    labels = np.concatenate([labels] * (int(level) + 1), axis=0)
+
+    def text_token_cat(rec):
+        sents = nltk.word_tokenize(rec[1])
+        return ' '.join(sents)
+
+    def text_random_crop(rec):
+        sents = nltk.word_tokenize(rec)
+        # sents = nltk.sent_tokenize(rec)
+        size = len(sents)
+        chop_size = size // (1 / crop_ratio)
+        chop_offset = random.randint(0, chop_size)
+        sents_chop = sents[chop_offset:size - chop_offset - 1]
+
+        # return rec['fulltext'][100:]
+        return ' '.join(sents_chop)
+
+    features.iloc[:len_ori][col] = features.iloc[:len_ori][col].apply(
+        text_token_cat)
+    features.iloc[len_ori:][col] = features.iloc[len_ori:][col].apply(
+        text_random_crop)
+
+    return features, labels
+
+
 def augment_records(df_data, df_tags, tags_list, level: int = 0):
     nltk.download('punkt')
 
