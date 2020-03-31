@@ -10,6 +10,7 @@ import json
 import logging
 from dataclasses import dataclass
 import random
+from collections import Counter
 import re
 
 
@@ -21,8 +22,11 @@ import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 import nltk
+from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 import pysnooper
 
+
+nltk.download('punkt')
 
 logger = logging.getLogger('dataset')
 # logger.setLevel(logging.In)
@@ -74,14 +78,20 @@ def clean_text(text):
     return text
 
 
+def text_token_cat(rec):
+    from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
+
+    d = TreebankWordDetokenizer()
+    toks = nltk.word_tokenize(rec)
+    return d.detokenize(toks)
+
+
 # TODO
 def remove_code_sec(text):
     return text
 
 
 def filter_tags(df_data, tags_list, threshold: int = 0):
-    from collections import Counter
-
     new_tglst = [item for subl in tags_list for item in subl]
     c = Counter(new_tglst)
 
@@ -155,62 +165,25 @@ def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0
     return features, labels, len_test, ds.mlb
 
 
-def augmented_samples_np(features, labels, level: int = 0,
-                         crop_ratio: float = 0.1, *args, **kwargs):
-    nltk.download('punkt')
-
-    if 'random_state' in kwargs.keys():
-        random_state = kwargs.pop('random_state')
-    else:
-        random_state = RAND_STATE
-
-    len_ori = features.shape[0]
-
-    features = np.concatenate([features] * (int(level) + 1), axis=0)
-    labels = np.concatenate([labels] * (int(level) + 1), axis=0)
-
-    def text_token_cat(rec):
-        sents = nltk.word_tokenize(rec[1])
-        return ' '.join(sents)
-
-    def text_random_crop(rec):
-        sents = nltk.word_tokenize(rec[1])
-        # sents = nltk.sent_tokenize(rec)
-        size = len(sents)
-        chop_size = size // (1 / crop_ratio)
-        chop_offset = random.randint(0, chop_size)
-        sents_chop = sents[chop_offset:size - chop_offset - 1]
-
-        # return rec['fulltext'][100:]
-        # rec[0]=' '.join(sents_chop)
-        # return rec
-        return ' '.join(sents_chop)
-
-    features[:len_ori, 1] = np.apply_along_axis(
-        text_token_cat, 1, features[:len_ori])
-    features[len_ori:, 1] = np.apply_along_axis(
-        text_random_crop, 1, features[len_ori:])
-
-    return features, labels
-
-
 def augmented_samples(features, labels, col: str = 'description', level: int = 0,
-                      crop_ratio: float = 0.1, *args, **kwargs):
+                      oversample_weight: int = None, crop_ratio: float = 0.1, *args, **kwargs):
+    """Used to augment the text col of the data set, the augmented copies will
+    be randomly transformed a little
+
+    Parameters
+    ----------
+    level : how many copies to append to the dataset. 0 means no append.
+
+    crop_ratio : How much ratio of the text to be raondomly cropped from head or
+    tail. It actually crops out about 1/ratio of the text.
+    """
+
     nltk.download('punkt')
 
     if 'random_state' in kwargs.keys():
         random_state = kwargs.pop('random_state')
     else:
         random_state = RAND_STATE
-
-    len_ori = features.shape[0]
-
-    features = pd.concat([features] * (int(level) + 1), ignore_index=True)
-    labels = np.concatenate([labels] * (int(level) + 1), axis=0)
-
-    def text_token_cat(rec):
-        sents = nltk.word_tokenize(rec[1])
-        return ' '.join(sents)
 
     def text_random_crop(rec):
         sents = nltk.word_tokenize(rec)
@@ -220,48 +193,25 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
         chop_offset = random.randint(0, chop_size)
         sents_chop = sents[chop_offset:size - chop_offset - 1]
 
-        # return rec['fulltext'][100:]
-        return ' '.join(sents_chop)
+        d = TreebankWordDetokenizer()
+        return d.detokenize(sents_chop)
 
-    features.iloc[:len_ori][col] = features.iloc[:len_ori][col].apply(
-        text_token_cat)
+    len_ori = features.shape[0]
+
+    features = pd.concat([features] * (int(level) + 1), ignore_index=True)
+    labels = np.concatenate([labels] * (int(level) + 1), axis=0)
+
+    # features.iloc[:len_ori][col] = features.iloc[:len_ori][col].apply(
+    #     text_token_cat)
     features.iloc[len_ori:][col] = features.iloc[len_ori:][col].apply(
         text_random_crop)
 
     return features, labels
 
 
-def augment_records(df_data, df_tags, tags_list, level: int = 0):
-    nltk.download('punkt')
-
-    len_ori = df_data.shape[0]
-
-    df_data = df_data.append(df_data * int(level),
-                             ignore_index=False)
-    df_tags = df_tags.append(df_tags * int(level),
-                             ignore_index=False)
-    tags_list *= level + 1
-
-    def text_random_crop(rec):
-        sents = nltk.sent_tokenize(rec)
-        size = len(sents)
-        chop_size = size // 10
-        chop_offset = random.randint(0, chop_size)
-        sents_chop = sents[chop_offset:size - chop_offset - 1]
-
-        # return rec['fulltext'][100:]
-        return ' '.join(sents_chop)
-
-    df_data.iloc[len_ori:]['fulltext'] = df_data.iloc[len_ori:]['fulltext'].apply(
-        text_random_crop)
-
-    return df_data, df_tags, tags_list
-
-
 def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
                  lan: str = None, filter_tags_threshold: int = None,
-                 aug_level: int = 0,
                  concate_title: bool = False,
                  partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
@@ -319,6 +269,8 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
             continue
         if remove_code:
             info['fulltext'] = remove_code_sec(info['fulltext'])
+
+        info['description'] = text_token_cat(info['description'])
         info['fulltext'] = clean_text(info['fulltext'])
 
         if partial_len is not None and partial_len > 0:
@@ -346,10 +298,6 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
             df_data, tags_lst, threshold=filter_tags_threshold)
 
     df_tags = pd.DataFrame(tags_lst)
-
-    if aug_level > 0:
-        df_data, df_tags, tags_lst = augment_records(
-            df_data, df_tags, tags_lst, level=aug_level)
 
     # df_tags.fillna(value=pd.np.nan, inplace=True)
     # print(df_tags)
