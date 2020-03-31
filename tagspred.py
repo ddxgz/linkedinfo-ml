@@ -17,11 +17,14 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn import metrics
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.base import TransformerMixin
+from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
+import torch
+import nltk
 import joblib
 import matplotlib.pyplot as plt
 
 import dataset
-from mltb.model_utils import download_once_pretrained_transformers
+from mltb.model_utils import download_once_pretrained_transformers, get_tokenizer_model
 
 # # logging.basicConfig(level=logging.INFO)
 # handler = logging.FileHandler(filename='experiment.log')
@@ -110,12 +113,6 @@ def model_persist(filename='tags_textbased_pred_1', datahome='data/models'):
 
 
 def model_persist_v2(filename='tags_textbased_pred_3', datahome='data/models'):
-    import numpy as np
-    import torch
-    from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
-
-    import dataset
-
     DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # ds = dataset.df_tags(content_length_threshold=100, lan='en',
@@ -182,24 +179,103 @@ def model_persist_v2(filename='tags_textbased_pred_3', datahome='data/models'):
     m = joblib.dump(ds.mlb, dump_target_mlb, compress=3)
 
 
-def save_pretrained():
-    from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel, BertConfig
+def feature_transform(model_name: str, descs: pd.DataFrame, col_text: str = 'description'):
+    tokenizer, model = get_tokenizer_model(model_name)
 
-    # PRETRAINED_BERT_WEIGHTS = 'distilbert-base-uncased'
-    PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
-    # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-4_H-256_A-4"
-    tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
-    model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
+    max_length = descs[col_text].apply(
+        lambda x: len(nltk.word_tokenize(x))).max()
+    if max_length > 512:
+        max_length = 512
+    encoded = descs[col_text].apply(
+        (lambda x: tokenizer.encode_plus(x, add_special_tokens=True,
+                                         pad_to_max_length=True,
+                                         return_attention_mask=True,
+                                         max_length=max_length,
+                                         return_tensors='pt')))
 
-    model_path = f'./data/models/{PRETRAINED_BERT_WEIGHTS}/'
-    if not os.path.exists(model_path):
-        os.makedirs(model_path)
+    input_ids = torch.cat(tuple(encoded.apply(lambda x: x['input_ids'])))
+    attention_mask = torch.cat(
+        tuple(encoded.apply(lambda x: x['attention_mask'])))
 
-    tokenizer.save_pretrained(model_path)
-    model.save_pretrained(model_path)
+    features = []
+    with torch.no_grad():
+        last_hidden_states = model(input_ids, attention_mask=attention_mask)
+        features = last_hidden_states[0][:, 0, :].numpy()
+
+    return features
+
+
+def model_persist_v3(filename='tags_textbased_pred_4', datahome='data/models'):
+    descs, labels, len_test, mlb = dataset.augmented_ds(
+        col='description', level=1, test_ratio=1,
+        from_batch_cache='fulltext',
+        aug_level=0, lan='en',
+        concate_title=True,
+        filter_tags_threshold=0, partial_len=3000)
+
+    model_name = "google/bert_uncased_L-4_H-256_A-4"
+
+    features = feature_transform(model_name, descs, col_text='description')
+
+    from sklearn.svm import SVC, LinearSVC
+    from sklearn.multiclass import OneVsRestClassifier
+    from sklearn import metrics
+
+    # Build vectorizer classifier pipeline
+    clf = OneVsRestClassifier(LinearSVC(penalty='l2', C=1, dual=True))
+
+    clf.fit(features, labels)
+
+    if not os.path.exists(datahome):
+        os.makedirs(datahome)
+
+    dump_target = os.path.join(datahome, f'{filename}.joblib.gz')
+    m = joblib.dump(clf, dump_target, compress=3)
+
+    dump_target_mlb = os.path.join(datahome, f'{filename}_mlb.joblib.gz')
+    m = joblib.dump(mlb, dump_target_mlb, compress=3)
+
+
+def model_persist_v4(filename='tags_textbased_pred_5', datahome='data/models'):
+
+    from mltb.experiment import multilearn_iterative_train_test_split
+
+    COL_TEXT = 'description'
+    ds = dataset.ds_info_tags(from_batch_cache='fulltext', lan='en',
+                              concate_title=True,
+                              filter_tags_threshold=4, partial_len=3000)
+
+    # train_features, test_features, train_labels, test_labels = multilearn_iterative_train_test_split(
+    #     ds.data, ds.target, test_size=0.001, cols=ds.data.columns)
+    features, labels = dataset.augmented_samples(
+        ds.data, ds.target, level=3, crop_ratio=0.2)
+
+    from sklearn.svm import SVC, LinearSVC
+    from sklearn.multiclass import OneVsRestClassifier
+    from sklearn import metrics
+
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.pipeline import Pipeline
+    from sklearn import metrics
+
+    clf = Pipeline([
+        ('vect', TfidfVectorizer(use_idf=True, max_df=0.8)),
+        ('clf', OneVsRestClassifier(LinearSVC(penalty='l2', C=1, dual=True))),
+    ])
+
+    clf.fit(features[COL_TEXT], labels)
+
+    if not os.path.exists(datahome):
+        os.makedirs(datahome)
+
+    dump_target = os.path.join(datahome, f'{filename}.joblib.gz')
+    m = joblib.dump(clf, dump_target, compress=3)
+
+    dump_target_mlb = os.path.join(datahome, f'{filename}_mlb.joblib.gz')
+    m = joblib.dump(ds.mlb, dump_target_mlb, compress=3)
 
 
 if __name__ == '__main__':
     # model_search()
-    model_persist_v2()
+    model_persist_v4()
     # save_pretrained()

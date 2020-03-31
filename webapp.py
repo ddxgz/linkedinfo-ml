@@ -78,9 +78,21 @@ class LanModel(PredictModel):
 
 @singleton
 class TagsTextModel(PredictModel):
+    def __init__(self, modelfile: str, mlb_fiile: str):
+        super().__init__(modelfile)
+
+        if os.path.exists(mlb_fiile):
+            mlb = joblib.load(mlb_fiile)
+        else:
+            raise FileNotFoundError('MLB Model file not exists! The model should be'
+                                    'place under ./data/models/')
+        self.mlb = mlb
 
     def predict(self, text):
-        return self.model.predict(text)
+        # return self.model.predict(text)
+        pred = self.model.predict(text)
+        pred_transformed = self.mlb.inverse_transform(pred)
+        return pred_transformed
 
 
 @singleton
@@ -208,7 +220,8 @@ def home():
 
 # LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
 # TAGS_MODEL = TagsTextModel(
-#     modelfile='data/models/tags_textbased_pred_1.joblib.gz')
+#     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
+#     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
 TAGS_MODEL = TagsTextModelV2(
     modelfile=MODEL_FILE)
 # TAGS_MODEL = TagsTestModel()
