@@ -65,13 +65,13 @@ class Dataset:
 def clean_text(text):
     text = text.replace('\\n', '')
     text = text.replace('\\', '')
-    #text = text.replace('\t', '')
+    # text = text.replace('\t', '')
     # text = re.sub('\[(.*?)\]','',text) #removes [this one]
     text = re.sub('(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?\s',
                   ' __url__ ', text)  # remove urls
-    #text = re.sub('\'','',text)
+    # text = re.sub('\'','',text)
     # text = re.sub(r'\d+', ' __number__ ', text) #replaces numbers
-    #text = re.sub('\W', ' ', text)
+    # text = re.sub('\W', ' ', text)
     # text = re.sub(' +', ' ', text)
     text = text.replace('\t', '')
     text = text.replace('\n', '')
@@ -97,29 +97,32 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
 
     tags_rm = []
     records_rm = []
-    thr = 2
+    new_tags_list = []
     for t in c.most_common()[::-1]:
-        if t[1] > thr:
+        if t[1] > threshold:
             break
         tags_rm.append(t[0])
 
-    logger.debug(f'tags to remove: {tags_rm}')
+    # logger.debug(f'tags to remove: {tags_rm}')
+    print(f'tags to remove: {tags_rm}')
 
-    for tag_rm in tags_rm:
-        for i, tags in enumerate(tags_list):
+    print(len(tags_list))
+    for i, tags in enumerate(tags_list):
+        for tag_rm in tags_rm:
             if tag_rm in tags:
                 # remove tag in list
                 tags.remove(tag_rm)
-                if len(tags) == 0:
-                    # remove info record
-                    records_rm.append(i)
+        if len(tags) == 0:
+            # remove info record
+            records_rm.append(i)
+        else:
+            new_tags_list.append(tags)
 
-    logger.debug(f'records to remove: {records_rm}')
+    # logger.debug(f'records to remove: {records_rm}')
+    print(f'records to remove: {records_rm}')
     df_data = df_data.drop(records_rm)
-    new_tags_list = []
-    for l in tags_list:
-        if len(l) > 0:
-            new_tags_list.append(l)
+    # print(tags_list)
+    print(len(new_tags_list))
 
     return df_data, new_tags_list
 
@@ -227,7 +230,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
         small cache files.
 
     tag_type : optional, label or tagID, default: 'tagID'
-        used to indicate which is used for tag encoding, should have no influence 
+        used to indicate which is used for tag encoding, should have no influence
         on the results.
 
     lan: optional, select from cn, en or None. None == both
@@ -256,6 +259,8 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     cache = fetch_infos(from_batch_cache=from_batch_cache,
                         fulltext=True, *args, **kwargs)
 
+    require_fulltext = False if from_batch_cache == 'info' else True
+
     data_lst = []
     tags_lst = []
     for info in cache['content']:
@@ -263,32 +268,44 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
         if lan:
             if info['language'] != lan:
                 continue
-        if len(info['fulltext']) < content_length_threshold:
-            continue
+        if require_fulltext:
+            if len(info['fulltext']) < content_length_threshold:
+                continue
         if len(info['description']) < content_length_threshold:
             continue
-        if remove_code:
-            info['fulltext'] = remove_code_sec(info['fulltext'])
+        if require_fulltext:
+            if remove_code:
+                info['fulltext'] = remove_code_sec(info['fulltext'])
 
         info['description'] = text_token_cat(info['description'])
-        info['fulltext'] = clean_text(info['fulltext'])
+        if require_fulltext:
+            info['fulltext'] = clean_text(info['fulltext'])
 
-        if partial_len is not None and partial_len > 0:
-            if partial_len < len(info['fulltext']):
-                info['partial_text'] = info['fulltext'][:partial_len]
-            else:
-                info['partial_text'] = info['fulltext']
+        # TODO make partial_len based on tokens
+        if require_fulltext:
+            if partial_len is not None and partial_len > 0:
+                if partial_len < len(info['fulltext']):
+                    info['partial_text'] = info['fulltext'][:partial_len]
+                else:
+                    info['partial_text'] = info['fulltext']
 
         if concate_title:
-            info['fulltext'] = info['title'] + '. ' + info['fulltext']
             info['description'] = info['title'] + '. ' + info['description']
-            info['partial_text'] = info['title'] + '. ' + info['partial_text']
+            if require_fulltext:
+                info['fulltext'] = info['title'] + '. ' + info['fulltext']
+                info['partial_text'] = info['title'] + \
+                    '. ' + info['partial_text']
 
-        data_lst.append({'title': info['title'],
-                         'description': info['description'],
-                         'language': info['language'],
-                         'fulltext': info['fulltext'],
-                         'partial_text': info['partial_text']})
+        if require_fulltext:
+            data_lst.append({'title': info['title'],
+                             'description': info['description'],
+                             'language': info['language'],
+                             'fulltext': info['fulltext'],
+                             'partial_text': info['partial_text']})
+        else:
+            data_lst.append({'title': info['title'],
+                             'description': info['description'],
+                             'language': info['language']})
         tags_lst.append([tag[tag_type] for tag in info['tags']])
 
     df_data = pd.DataFrame(data_lst)
@@ -309,7 +326,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     return ds
 
 
-#TODO: Deprecated
+# TODO: Deprecated
 def df_tags(tag_type: str = 'tagID', content_length_threshold: int = 100, lan: str = None,
             partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
     """
@@ -321,7 +338,7 @@ def df_tags(tag_type: str = 'tagID', content_length_threshold: int = 100, lan: s
     Parameters
     ----------
     tag_type : optional, label or tagID, default: 'tagID'
-        used to indicate which is used for tag encoding, should have no influence 
+        used to indicate which is used for tag encoding, should have no influence
         on the results.
 
     lan: optional, select from cn, en or None. None == both
@@ -484,7 +501,7 @@ def fetch_infos(data_home='data', from_batch_cache: str = None, fulltext=True,
         small cache files.
 
     fulltext : optional, False by default
-        If True, it will fectch the full text of each info. 
+        If True, it will fectch the full text of each info.
 
     random_state : int, RandomState instance or None (default)
         Determines random number generation for dataset shuffling. Pass an int
@@ -510,7 +527,7 @@ def fetch_infos(data_home='data', from_batch_cache: str = None, fulltext=True,
 
     Returns
     -------
-    Dict: all infos w/ or w/o fulltext 
+    Dict: all infos w/ or w/o fulltext
     """
     data_home = data_home
     cache_path = os.path.join(data_home, 'cache')
@@ -591,7 +608,7 @@ def fetch_infos_dep(data_home='data', subset='train', fulltext=False,
         for the test set, 'all' for both, with shuffled ordering.
 
     fulltext : optional, False by default
-        If True, it will fectch the full text of each info. 
+        If True, it will fectch the full text of each info.
 
     random_state : int, RandomState instance or None (default)
         Determines random number generation for dataset shuffling. Pass an int
@@ -812,19 +829,19 @@ def _retrieve_info_fulltext(info, target_dir='data/fulltext',
                             cache_path='data/cache/fulltext',
                             fallback_threshold=100, force_download=False,
                             force_extract=True):
-    """Retrieve fulltext of an info by its url. The original html doc is stored 
-    in cache_path named as info.key. The extracted text doc will be stored in 
+    """Retrieve fulltext of an info by its url. The original html doc is stored
+    in cache_path named as info.key. The extracted text doc will be stored in
     target_dir named as info.key.
 
-    Some of the webpage may lazy load the fulltext or the page not exists 
-    anymore, then test if the length of the retrieved text is less than the 
-    fallback_threshold. If it's less than the fallback_threshold, return the 
+    Some of the webpage may lazy load the fulltext or the page not exists
+    anymore, then test if the length of the retrieved text is less than the
+    fallback_threshold. If it's less than the fallback_threshold, return the
     short description of the info.
 
-    Can make a list of hosts that lazy load the fulltext, then try to utilize 
+    Can make a list of hosts that lazy load the fulltext, then try to utilize
     their APIs to retrieve the fulltext.
 
-    If force_download is True or cache not exists, then force_extract is True 
+    If force_download is True or cache not exists, then force_extract is True
     despite of the passing value.
 
     Cache file naming: {key}.html
