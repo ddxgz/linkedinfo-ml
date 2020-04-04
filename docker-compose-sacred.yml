@@ -37,7 +37,7 @@ services:
   sacredboard:
     build: ./sacredboard
     ports:
-      - 127.0.0.1:5000:5000
+      - 127.0.0.1:5005:5000
     restart: unless-stopped
     env_file: .env
     depends_on:
