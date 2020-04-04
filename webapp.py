@@ -18,6 +18,7 @@ from mltb.bert import download_once_pretrained_transformers
 import dataset
 from dataset import LAN_ENCODING
 
+
 app = Flask('ML-prediction-service')
 app.secret_key = str(uuid.uuid4())
 app.debug = False

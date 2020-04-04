@@ -9,6 +9,7 @@ requests
 scikit-learn==0.22.2.post1
 pandas
 Flask
+nltk
 requests
 gunicorn==20.0.4
 gevent==1.4.0
