@@ -103,10 +103,9 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
             break
         tags_rm.append(t[0])
 
-    # logger.debug(f'tags to remove: {tags_rm}')
-    print(f'tags to remove: {tags_rm}')
+    logger.debug(f'tags to remove: {tags_rm}')
 
-    print(len(tags_list))
+    # print(len(tags_list))
     for i, tags in enumerate(tags_list):
         for tag_rm in tags_rm:
             if tag_rm in tags:
@@ -118,11 +117,10 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
         else:
             new_tags_list.append(tags)
 
-    # logger.debug(f'records to remove: {records_rm}')
-    print(f'records to remove: {records_rm}')
+    logger.debug(f'records to remove: {records_rm}')
     df_data = df_data.drop(records_rm)
     # print(tags_list)
-    print(len(new_tags_list))
+    # print(len(new_tags_list))
 
     return df_data, new_tags_list
 
@@ -181,7 +179,7 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
     tail. It actually crops out about 1/ratio of the text.
     """
 
-    nltk.download('punkt')
+    # nltk.download('punkt')
 
     if 'random_state' in kwargs.keys():
         random_state = kwargs.pop('random_state')
@@ -206,7 +204,11 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
 
     # features.iloc[:len_ori][col] = features.iloc[:len_ori][col].apply(
     #     text_token_cat)
-    features.iloc[len_ori:][col] = features.iloc[len_ori:][col].apply(
+    # features.iloc[len_ori:][col] = features.iloc[len_ori:][col].apply(
+    #     text_random_crop)
+    # see
+    # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-view-versus-copy
+    features[col].iloc[len_ori:] = features[col].iloc[len_ori:].apply(
         text_random_crop)
 
     return features, labels
@@ -261,6 +263,10 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
 
     require_fulltext = False if from_batch_cache == 'info' else True
 
+    require_partial_text = False
+    if partial_len is not None and partial_len > 0:
+        require_partial_text = True
+
     data_lst = []
     tags_lst = []
     for info in cache['content']:
@@ -278,29 +284,31 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
                 info['fulltext'] = remove_code_sec(info['fulltext'])
 
         info['description'] = text_token_cat(info['description'])
-        if require_fulltext:
+        if require_fulltext or require_partial_text:
             info['fulltext'] = clean_text(info['fulltext'])
 
         # TODO make partial_len based on tokens
-        if require_fulltext:
-            if partial_len is not None and partial_len > 0:
-                if partial_len < len(info['fulltext']):
-                    info['partial_text'] = info['fulltext'][:partial_len]
-                else:
-                    info['partial_text'] = info['fulltext']
+        if require_partial_text:
+            if partial_len < len(info['fulltext']):
+                info['partial_text'] = info['fulltext'][:partial_len]
+            else:
+                info['partial_text'] = info['fulltext']
 
         if concate_title:
             info['description'] = info['title'] + '. ' + info['description']
             if require_fulltext:
                 info['fulltext'] = info['title'] + '. ' + info['fulltext']
+            if require_partial_text:
                 info['partial_text'] = info['title'] + \
                     '. ' + info['partial_text']
 
         if require_fulltext:
             data_lst.append({'title': info['title'],
-                             'description': info['description'],
                              'language': info['language'],
-                             'fulltext': info['fulltext'],
+                             'fulltext': info['fulltext']})
+        elif require_partial_text:
+            data_lst.append({'title': info['title'],
+                             'language': info['language'],
                              'partial_text': info['partial_text']})
         else:
             data_lst.append({'title': info['title'],
