@@ -6,13 +6,15 @@ import json
 import uuid
 
 import numpy as np
+import pandas as pd
 from flask import Flask, request, send_from_directory
 from gevent.pywsgi import WSGIServer as Geventwsgiserver
 import joblib
 import torch
-from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel
+import nltk
 
-from mltb.model_utils import download_once_pretrained_transformers
+from mltb.bert import download_once_pretrained_transformers
 import dataset
 from dataset import LAN_ENCODING
 
@@ -21,14 +23,17 @@ app.secret_key = str(uuid.uuid4())
 app.debug = False
 wsgiapp = app.wsgi_app
 
+nltk.download('punkt')
+
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/bert_uncased_L-2_H-128_A-2/"
 # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
-PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
-    "google/bert_uncased_L-4_H-256_A-4")
+# PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
+#     "google/bert_uncased_L-4_H-256_A-4")
+PRETRAINED_BERT_WEIGHTS = "./data/models/bert_finetuned_tagthr_20/"
 
-MODEL_FILE = 'data/models/tags_textbased_pred_4.joblib.gz'
-MLB_FILE = 'data/models/tags_textbased_pred_4_mlb.joblib.gz'
+MODEL_FILE = 'data/models/tags_textbased_pred_6.joblib.gz'
+MLB_FILE = 'data/models/tags_textbased_pred_6_mlb.joblib.gz'
 
 
 def singleton(cls, *args, **kwargs):
@@ -114,29 +119,57 @@ class TagsTextModelV2(PredictModel):
         self.mlb = mlb
 
     def predict(self, text):
-        col_text = 'partial_text'
-        tokenized = []
+        list_len = []
         for i in text:
-            tokenized.append(self.tokenizer.encode(i, add_special_tokens=True,
-                                                   max_length=256))
-        max_len = 0
-        for i in tokenized:
-            if len(i) > max_len:
-                max_len = len(i)
+            list_len.append(len(nltk.word_tokenize(i)))
 
-        padded = np.array([i + [0] * (max_len - len(i)) for i in tokenized])
-        # %%
-        attention_mask = np.where(padded != 0, 1, 0)
-        attention_mask.shape
-        # %%
-        input_ids = torch.tensor(padded)
-        attention_mask = torch.tensor(attention_mask)
+        max_length = max(list_len)
+        if max_length > 512:
+            max_length = 512
+
+        input_ids = []
+        attention_masks = []
+        for i in text:
+            encoded = self.tokenizer.encode_plus(i, add_special_tokens=True,
+                                                 pad_to_max_length=True,
+                                                 return_attention_mask=True,
+                                                 max_length=max_length,
+                                                 return_tensors='pt')
+
+            input_ids.append(encoded['input_ids'])
+            attention_masks.append(encoded['attention_mask'])
+
+        input_ids = torch.cat(input_ids, dim=0)
+        attention_masks = torch.cat(attention_masks, dim=0)
+        # input_ids = torch.tensor(padded)
+        # attention_mask = torch.tensor(attention_mask)
         features = []
 
         with torch.no_grad():
             last_hidden_states = self.feat_model(
-                input_ids, attention_mask=attention_mask)
+                input_ids, attention_mask=attention_masks)
             features = last_hidden_states[0][:, 0, :].numpy()
+
+        pred = self.model.predict(features)
+        pred_transformed = self.mlb.inverse_transform(pred)
+        return pred_transformed
+
+
+@singleton
+class TagsTextModelV3(PredictModel):
+    def __init__(self, modelfile: str):
+        super().__init__(modelfile)
+
+        if os.path.exists(MLB_FILE):
+            mlb = joblib.load(MLB_FILE)
+        else:
+            raise FileNotFoundError('MLB Model file not exists! The model should be'
+                                    'place under ./data/models/')
+        self.mlb = mlb
+
+    def predict(self, text):
+        col_text = 'description'
+        features = pd.DataFrame(text, columns=[col_text])
 
         pred = self.model.predict(features)
         pred_transformed = self.mlb.inverse_transform(pred)
@@ -222,7 +255,7 @@ def home():
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
 #     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-TAGS_MODEL = TagsTextModelV2(
+TAGS_MODEL = TagsTextModelV3(
     modelfile=MODEL_FILE)
 # TAGS_MODEL = TagsTestModel()
 

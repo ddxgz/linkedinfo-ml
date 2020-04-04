@@ -4,6 +4,7 @@ from datetime import datetime
 import functools
 import json
 import logging
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -59,6 +60,64 @@ def data_split_oversample_v1(X: pd.DataFrame, Y: pd.Series):
     X_train, Y_train = ros.fit_resample(X_train, Y_train)
 
     return X_train, X_val, Y_train, Y_val
+
+
+class ExperimentABC(ABC):
+    def __init__(self, transform_pipe: Pipeline = None,
+                 data_split: Callable = None, model=None, model_class=None,
+                 model_param: dict = None, scorer: Callable = None):
+        super().__init__()
+
+        if transform_pipe is None:
+            self.pipe = Pipeline()
+        else:
+            self.pipe = transform_pipe
+
+        if data_split is None:
+            self.data_split = data_split_v1
+        else:
+            self.data_split = data_split
+
+        if model_class:
+            self.model = model_class(**model_param)
+        else:
+            self.model = model
+
+        self.model_param = model_param
+
+        if scorer is None:
+            self.scorer = metrics.roc_auc_score
+        else:
+            self.scorer = scorer
+
+    @abstractmethod
+    def load_data(self, data_loader, param):
+        pass
+
+    @abstractmethod
+    def preprocess(self):
+        pass
+
+    @abstractmethod
+    def postprocess(self):
+        pass
+
+    @abstractmethod
+    def run(self, text):
+        raise NotImplementedError(
+            'users must define run() to use this base class')
+
+
+class Exp:
+    # def __init__(self, data_loader: dict, data_split: dict, data_sampler: dict,
+    #              transfomer, model=None, model_param: dict = None, scorers:
+    #              List[Callable] = None):
+    def __init__(self):
+        self.steps = []
+
+    def step(self, func, param):
+        self.steps.append({func.__name__: param})
+        return func(param)
 
 
 class Experiment:

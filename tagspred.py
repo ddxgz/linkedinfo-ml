@@ -24,7 +24,7 @@ import joblib
 import matplotlib.pyplot as plt
 
 import dataset
-from mltb.model_utils import download_once_pretrained_transformers, get_tokenizer_model
+from mltb.bert import bert_transform, download_once_pretrained_transformers, get_tokenizer_model
 
 # # logging.basicConfig(level=logging.INFO)
 # handler = logging.FileHandler(filename='experiment.log')
@@ -217,10 +217,6 @@ def model_persist_v3(filename='tags_textbased_pred_4', datahome='data/models'):
 
     features = feature_transform(model_name, descs, col_text='description')
 
-    from sklearn.svm import SVC, LinearSVC
-    from sklearn.multiclass import OneVsRestClassifier
-    from sklearn import metrics
-
     # Build vectorizer classifier pipeline
     clf = OneVsRestClassifier(LinearSVC(penalty='l2', C=1, dual=True))
 
@@ -250,13 +246,8 @@ def model_persist_v4(filename='tags_textbased_pred_5', datahome='data/models'):
     features, labels = dataset.augmented_samples(
         ds.data, ds.target, level=3, crop_ratio=0.2)
 
-    from sklearn.svm import SVC, LinearSVC
-    from sklearn.multiclass import OneVsRestClassifier
-    from sklearn import metrics
-
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.pipeline import Pipeline
-    from sklearn import metrics
 
     clf = Pipeline([
         ('vect', TfidfVectorizer(use_idf=True, max_df=0.8)),
@@ -275,7 +266,49 @@ def model_persist_v4(filename='tags_textbased_pred_5', datahome='data/models'):
     m = joblib.dump(ds.mlb, dump_target_mlb, compress=3)
 
 
+def model_persist_v5(filename='tags_textbased_pred_6', datahome='data/models'):
+
+    from mltb.experiment import multilearn_iterative_train_test_split
+
+    col_text = 'description'
+    ds = dataset.ds_info_tags(from_batch_cache='info', lan='en',
+                              concate_title=True,
+                              filter_tags_threshold=20)
+
+    # train_features, test_features, train_labels, test_labels = multilearn_iterative_train_test_split(
+    #     ds.data, ds.target, test_size=0.001, cols=ds.data.columns)
+    features, labels = dataset.augmented_samples(
+        ds.data, ds.target, level=3, crop_ratio=0.2)
+
+    batch_size = 128
+    model_name = "./data/models/bert_finetuned_tagthr_20/"
+
+    # train_features, test_features = bert_transform(
+    #     train_features, test_features, col_text, model_name, batch_size)
+
+    from mltb.bert import BertTransformer
+
+    clf = Pipeline([
+        ('bert_tran', BertTransformer(col_text, model_name, batch_size)),
+        ('clf', OneVsRestClassifier(LinearSVC(penalty='l2', C=0.1, dual=True))),
+    ])
+
+    # Build vectorizer classifier pipeline
+    # clf = OneVsRestClassifier(LinearSVC(penalty='l2', C=1, dual=True))
+
+    clf.fit(features, labels)
+
+    if not os.path.exists(datahome):
+        os.makedirs(datahome)
+
+    dump_target = os.path.join(datahome, f'{filename}.joblib.gz')
+    m = joblib.dump(clf, dump_target, compress=3)
+
+    dump_target_mlb = os.path.join(datahome, f'{filename}_mlb.joblib.gz')
+    m = joblib.dump(ds.mlb, dump_target_mlb, compress=3)
+
+
 if __name__ == '__main__':
     # model_search()
-    model_persist_v4()
+    model_persist_v5()
     # save_pretrained()

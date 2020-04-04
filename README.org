@@ -32,19 +32,21 @@ Options:
 ** TODOs
  - [X] Language identification model for info text
  - [ ] Text-based info tags prediction model 
-    - [X] LinearSVC
-    - [X] Gradient Boosting
-    - [X] BERT (bert-tiny now)
-    - [ ] Stacking models with other feature like title, author, host, etc.
-    - [ ] separate models for en and cn
-    - [X] retrieve all new infos
-    - [X] filter minority tags
-    - [X] text augmentation and oversampling
-    - [ ] try different classifier layer when there's more data
-    - [ ] search more suitable data for training
-   - [ ] Graph-based info tags prediction model 
-   - [ ] Try different sampling methods
-   - [ ] concate title, text, author, and other metadata as features https://github.com/malteos/pytorch-bert-document-classification
+  - [X] LinearSVC
+  - [X] Gradient Boosting
+  - [X] BERT (bert-tiny now)
+  - [ ] Stacking models with other feature like title, author, host, etc.
+  - [ ] separate models for en and cn
+  - [X] retrieve all new infos
+  - [X] filter minority tags
+  - [X] text augmentation and oversampling
+  - [ ] try different classifier layer when there's more data
+  - [ ] search more suitable data for training
+  - [ ] Graph-based info tags prediction model 
+  - [ ] Try different sampling methods
+  - [ ] ensemble models by using concate title, text, author, and other metadata as features
+  https://github.com/malteos/pytorch-bert-document-classification
+  - [ ] new preprocessing with tf-idf
  - [X] Migrate to GCloud run
  - [ ] limit length of text
  - [ ] accept url to predict with extraction
