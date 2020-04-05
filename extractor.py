@@ -11,15 +11,13 @@ from dataclasses import dataclass
 import random
 from collections import Counter
 import re
+import hashlib
 
 
 import requests
 import html2text
+from bs4 import BeautifulSoup
 from urllib.parse import urlparse
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
-from sklearn.model_selection import train_test_split
 import nltk
 from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 import pysnooper
@@ -377,8 +375,10 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
     return allinfos
 
 
+# TODO: another extractor extracts text from html partition
+
+
 def extract_bs4(source: str) -> str:
-    from bs4 import BeautifulSoup
     soup = BeautifulSoup(source, 'html.parser')
     return soup.body.get_text()
 
@@ -400,7 +400,12 @@ def extract_text_from_html(source: str, method=extract_html2text) -> str:
     return method(source)
 
 
-def retrieve_infoqcn_fulltext(referer_url: str) -> str:
+def extract_title_from_html(source: str) -> str:
+    soup = BeautifulSoup(source, 'html.parser')
+    return soup.title.string
+
+
+def retrieve_infoqcn_article(referer_url: str) -> dict:
     infoqcn_url = 'https://www.infoq.cn'
     detail_url = f'{infoqcn_url}/public/v1/article/getDetail'
     key = referer_url.split('/')[-1]
@@ -421,6 +426,26 @@ def retrieve_infoqcn_fulltext(referer_url: str) -> str:
         raise ConnectionError('Get infos not succeed!')
     article = res.json()
     # logger.debug(article)
+    return article
+
+
+def retrieve_infoqcn_info(referer_url: str) -> dict:
+    info = {}
+    article = retrieve_infoqcn_article(referer_url)
+    article = article['data']
+    content = article.get('content', '')
+    text = extract_text_from_html(content)
+
+    info['fulltext'] = text
+    info['title'] = article.get('article_title', '')
+    info['creators'] = [author['nickname'] for author in article.get('author')]
+    info['tags'] = [tag['alias'] for tag in article.get('topic')]
+
+    return info
+
+
+def retrieve_infoqcn_fulltext(referer_url: str) -> str:
+    article = retrieve_infoqcn_article(referer_url)
     content = article['data'].get('content', '')
     # text = html2text.html2text(content)
     text = extract_text_from_html(content)
@@ -430,6 +455,10 @@ def retrieve_infoqcn_fulltext(referer_url: str) -> str:
 
 fulltext_spec_dict = {
     'www.infoq.cn': retrieve_infoqcn_fulltext,
+}
+
+info_spec_dict = {
+    'www.infoq.cn': retrieve_infoqcn_info,
 }
 
 
@@ -519,8 +548,59 @@ def _retrieve_info_fulltext(info, target_dir='data/fulltext',
     return txt
 
 
+def get_html_from_url(infourl: str, force_download: bool = False,
+                      cache_path='data/cache/html', save_cache: bool = True) -> str:
+    md5obj = hashlib.md5(infourl.encode('utf-8')).hexdigest()
+    cache_filename = f'{md5obj}.html'
+    cache = os.path.join(cache_path, cache_filename)
+
+    tmp = ''
+    if not force_download and os.path.exists(cache):
+        with open(cache, 'r') as f:
+            tmp = f.read()
+        return tmp
+
+    try:
+        res = requests.get(infourl)
+        logger.debug(
+            f'encoding: {res.encoding}, url: {infourl}')
+        if res.status_code != 200:
+            logger.info(f'Failed to retrieve html from {infourl}')
+            tmp = ''
+    except Exception as e:
+        logger.error(e)
+        logger.info(f'Failed to retrieve html from {infourl}')
+        tmp = ''
+    else:
+        res.encoding = 'utf-8'
+        tmp = res.text
+
+    if save_cache:
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+
+        with open(cache, 'w') as f:
+            # if res.encoding not in ('utf-8', 'UTF-8'):
+            #     logger.debug(f'write encoding: {res.encoding} to utf-8, key: {info["key"]}')
+            #     f.write(tmp.decode(res.encoding).encode('utf-8'))
+            # else:
+            f.write(tmp)
+    return tmp
+
+
 def extract_info_from_url(infourl: str) -> dict:
-    pass
+    info = {}
+    urlobj = urlparse(infourl)
+    if urlobj.netloc in info_spec_dict.keys():
+        logger.debug(
+            f'to extract special  url: {infourl}')
+        info = info_spec_dict[urlobj.netloc](infourl)
+    else:
+        html_doc = get_html_from_url(infourl)
+        info['title'] = extract_title_from_html(html_doc)
+        info['fulltext'] = extract_text_from_html(html_doc)
+
+    return info
 
 
 if __name__ == '__main__':
@@ -530,12 +610,18 @@ if __name__ == '__main__':
     # infos = fetch_untagged_infos()
     # caching_untagged_infos()
 
-    cache_path = 'data/cache/fulltext'
-    cache_filename = '3df4551ab3c513422ecb39b00fc80443.html'
-    cache = os.path.join(cache_path, cache_filename)
-    with open(cache, 'r') as f:
-        tmp = extract_text_from_html(f.read(), method=extract_bs4)
-        print(tmp)
+    # cache_path = 'data/cache/fulltext'
+    # cache_filename = '3df4551ab3c513422ecb39b00fc80443.html'
+    # cache = os.path.join(cache_path, cache_filename)
+    # with open(cache, 'r') as f:
+    #     tmp = extract_text_from_html(f.read(), method=extract_bs4)
+    #     print(tmp)
+
+    # infourl =
+    # 'https://towardsdatascience.com/20-minute-data-science-crash-course-for-2020-8670ad4f727a'
+    infourl = 'https://www.infoq.cn/article/WiEUHYwyqFsYJIgLUed5'
+    print(extract_info_from_url(infourl))
+
     # pass
 
     # %%
