@@ -15,7 +15,7 @@ from transformers import AutoTokenizer, AutoModel
 import nltk
 
 from mltb.bert import download_once_pretrained_transformers
-import dataset
+import extractor
 from dataset import LAN_ENCODING
 
 
@@ -31,7 +31,7 @@ nltk.download('punkt')
 # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
 # PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
 #     "google/bert_uncased_L-4_H-256_A-4")
-PRETRAINED_BERT_WEIGHTS = "./data/models/bert_finetuned_tagthr_20/"
+PRETRAINED_BERT_WEIGHTS = "./data/models/bert_mini_finetuned_tagthr_20/"
 
 MODEL_FILE = 'data/models/tags_textbased_pred_6.joblib.gz'
 MLB_FILE = 'data/models/tags_textbased_pred_6_mlb.joblib.gz'
@@ -229,6 +229,24 @@ def predict_tags(info: dict) -> str:
     return predicted[0]
 
 
+def predict_tags_by_url(info: dict) -> str:
+    """ An info comes in as a json (dict), use the url sent in to extract text
+     for prediction.
+
+    Returns
+    -------
+    List of str of the tagID
+    """
+    if 'url' in info.keys():
+        infourl = info['url']
+    else:
+        return None
+
+    info = extractor.extract_info_from_url(infourl)
+
+    return predict_tags(info)
+
+
 @app.route('/predictions/language', methods=['POST'])
 def pred_lan():
     if request.method == 'POST':
@@ -242,7 +260,13 @@ def pred_lan():
 def pred_tags():
     if request.method == 'POST':
         info = request.get_json()
-        tags_pred = predict_tags(info)
+
+        # if multiple url args with the same key, only the 1st will be returned
+        by_url = request.args.get('by_url', None)
+        if by_url is not None and by_url in [True, 'true', 'True', 1, '1']:
+            tags_pred = predict_tags_by_url(info)
+        else:
+            tags_pred = predict_tags(info)
         resp = json.dumps({'tags': tags_pred})
         return resp
 
