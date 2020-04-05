@@ -20,29 +20,54 @@
                     It uses BERT and is trained on the dataset of <a href="https://www.linkedinfo.co/"
                        target="_blank">LinkedInfo.co</a>
                 </h2>
+
+                You can either choose submit the text or the URL of the article you
+                want to get tags.
+                <p></p>
                 <div>
+                    <el-form ref="form"
+                             :model="form">
+                        <el-tabs v-model="activeTab"
+                                 @tab-click="handleClick"
+                                 type="border-card">
+                            <el-tab-pane label="Text"
+                                         name="byText">
+                                <h3>Paste the text of an article to upload and get tag</h3>
 
-                    <h3>Paste the text of an article to upload and get tag</h3>
-                    <div>
-                        <el-form ref="form"
-                                 :model="form">
-
-                            <!-- <el-form-item label="Title">
+                                <!-- <el-form-item label="Title">
                                     <el-input v-model="form.title"></el-input>
                                 </el-form-item> -->
-                            <!-- <el-form-item label="Article Text"> -->
-                            <el-form-item>
-                                <el-input type="textarea"
-                                          :autosize="{minRows: 5, maxRows:20}"
-                                          placeholder="Paste the text to upload and get tag"
-                                          v-model="form.description"></el-input>
-                            </el-form-item>
-                            <el-form-item>
-                                <el-button type="primary"
-                                           @click="onSubmit">Predict</el-button>
-                            </el-form-item>
-                        </el-form>
-                    </div>
+                                <!-- <el-form-item label="Article Text"> -->
+                                <el-form-item>
+                                    <el-input type="textarea"
+                                              :autosize="{minRows: 5, maxRows:20}"
+                                              placeholder="Paste the text to upload and get tag"
+                                              v-model="form.description"></el-input>
+                                </el-form-item>
+                            </el-tab-pane>
+
+                            <el-tab-pane label="URL"
+                                         name="byUrl">
+                                <h3>Paste the URL of an article to upload and
+                                    get tag</h3>
+
+                                <!-- <el-form-item label="Title">
+                                    <el-input v-model="form.title"></el-input>
+                                </el-form-item> -->
+                                <!-- <el-form-item label="Article Text"> -->
+                                <el-form-item>
+                                    <el-input type="url"
+                                              placeholder="Paste the URL to upload and get tag. Please include the protocol"
+                                              v-model="form.url"></el-input>
+                                </el-form-item>
+                            </el-tab-pane>
+                        </el-tabs>
+                        <p></p>
+                        <el-form-item>
+                            <el-button type="primary"
+                                       @click="onSubmit">Predict</el-button>
+                        </el-form-item>
+                    </el-form>
 
                 </div>
                 <p></p>
@@ -123,7 +148,9 @@
             el: '#app',
             data() {
                 return {
+                    activeTab: 'byText',
                     form: {
+                        url: '',
                         title: '',
                         description: '',
                     },
@@ -132,6 +159,9 @@
                 }
             },
             computed: {
+                ifByUrl() {
+                    return this.activeTab === 'byUrl';
+                },
                 isInitial() {
                     return this.currentStatus === STATUS_INITIAL;
                 },
@@ -152,10 +182,12 @@
                 onSubmit() {
                     // console.log('submit!');
                     this.currentStatus = STATUS_SAVING;
+
                     axios.post('/predictions/tags',
                         this.form,
                         {
-                            headers: { 'Content-Type': 'application/json' }
+                            headers: { 'Content-Type': 'application/json' },
+                            params: { by_url: this.ifByUrl }
                         }
                     ).then(response => {
                         this.currentStatus = STATUS_SUCCESS;
@@ -176,6 +208,9 @@
                 },
                 onExceed(files, fileList) {
                     this.currentStatus = STATUS_EXCEEDED;
+                },
+                handleClick(tab, event) {
+                    console.log(tab, event);
                 }
             }
         })
