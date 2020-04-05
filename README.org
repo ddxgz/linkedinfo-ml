@@ -1,5 +1,6 @@
 * Machine Learning models for Linkedinfo.co 
-A topic tags prediction service for technical articles. Find the service at
+A topic tags prediction service for technical articles. The model is trained on
+the dataset from https://linkedinfo.co. Find the service at
 https://ml.linkedinfo.co/ 
 ** Uage
 
@@ -29,13 +30,16 @@ Options:
 
 #+END_SRC
 
+** Info tags prediction
+Model is trained offline and persisted. The persisted model should be placed
+under =./data/models/= to be loaded by the Web service.
+
 ** TODOs
  - [X] Language identification model for info text
- - [ ] Text-based info tags prediction model 
+ - [X] Text-based info tags prediction model 
   - [X] LinearSVC
   - [X] Gradient Boosting
   - [X] BERT (bert-tiny now)
-  - [ ] Stacking models with other feature like title, author, host, etc.
   - [ ] separate models for en and cn
   - [X] retrieve all new infos
   - [X] filter minority tags
@@ -43,12 +47,9 @@ Options:
   - [ ] try different classifier layer when there's more data
   - [ ] search more suitable data for training
   - [ ] Graph-based info tags prediction model 
-  - [ ] Try different sampling methods
-  - [ ] ensemble models by using concate title, text, author, and other metadata as features
-  https://github.com/malteos/pytorch-bert-document-classification
+  - [x] Try different sampling methods
+  - [ ] stacking ensemble models by using concate title, text, author, and other metadata as features https://github.com/malteos/pytorch-bert-document-classification
   - [ ] new preprocessing with tf-idf
  - [X] Migrate to GCloud run
- - [ ] limit length of text
+ - [ ] limit length of text on frontend
  - [ ] accept url to predict with extraction
-** Info tags prediction
-Model is trained offline and persisted. The persisted model should be placed under =./data/models/= to be loaded by the Web service.
