@@ -1,4 +1,3 @@
-# %%
 """
 Fetch infos of articles from LinkedInfo.co or other places.
 """
@@ -377,10 +376,41 @@ def _retrieve_infos(target_dir, cache_path, fragment_size=10, total_size=None):
 
 # TODO: another extractor extracts text from html partition
 
+def extract_info_towardsdatascience(source: str) -> dict:
+    from bs4.element import Comment
+
+    def tag_visible(element):
+        if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
+            return False
+        if isinstance(element, Comment):
+            return False
+        return True
+
+    soup = BeautifulSoup(source, 'html.parser')
+
+    info = {}
+
+    article = soup.article
+    h1s = soup.h1.extract()
+    # h1s = soup.find('h1')
+    # print(h1s.string)
+    info['title'] = h1s.string
+
+    soup.figure.extract()
+
+    # print(article.get_text(" ", strip=True)[:200])
+    info['fulltext'] = soup.article.get_text(" ", strip=True)
+    # return soup.body.get_text()
+    return info
+
 
 def extract_bs4(source: str) -> str:
     soup = BeautifulSoup(source, 'html.parser')
-    return soup.body.get_text()
+    if soup.body.header:
+        soup.body.header.extract()
+    if soup.body.h1:
+        soup.body.h1.extract()
+    return soup.body.get_text(' ', strip=True)
 
 
 def extract_html2text(source: str) -> str:
@@ -396,12 +426,15 @@ def extract_html2text(source: str) -> str:
     return h.handle(source)
 
 
-def extract_text_from_html(source: str, method=extract_html2text) -> str:
+def extract_text_from_html(source: str, method=extract_bs4) -> str:
     return method(source)
 
 
 def extract_title_from_html(source: str) -> str:
     soup = BeautifulSoup(source, 'html.parser')
+    h1 = soup.find('h1')
+    if len(h1) > 0 and h1.string:
+        return h1.string
     return soup.title.string
 
 
@@ -461,8 +494,13 @@ info_spec_dict = {
     'www.infoq.cn': retrieve_infoqcn_info,
 }
 
+info_html_ext_dict = {
+    'towardsdatascience.com': extract_info_towardsdatascience,
+}
 
 # TODO: make it asynchronous
+
+
 def _retrieve_info_fulltext(info, target_dir='data/fulltext',
                             cache_path='data/cache/fulltext',
                             fallback_threshold=100, force_download=False,
@@ -561,7 +599,11 @@ def get_html_from_url(infourl: str, force_download: bool = False,
         return tmp
 
     try:
-        res = requests.get(infourl)
+        from fake_useragent import UserAgent
+
+        ua = UserAgent()
+        headers = {'User-Agent': ua.random}
+        res = requests.get(infourl, headers=headers)
         logger.debug(
             f'encoding: {res.encoding}, url: {infourl}')
         if res.status_code != 200:
@@ -595,10 +637,18 @@ def extract_info_from_url(infourl: str) -> dict:
         logger.debug(
             f'to extract special  url: {infourl}')
         info = info_spec_dict[urlobj.netloc](infourl)
-    else:
-        html_doc = get_html_from_url(infourl)
-        info['title'] = extract_title_from_html(html_doc)
-        info['fulltext'] = extract_text_from_html(html_doc)
+        return info
+
+    html_doc = get_html_from_url(infourl)
+
+    if urlobj.netloc in info_html_ext_dict.keys():
+        logger.debug(
+            f'to extract special url: {infourl}')
+        info = info_html_ext_dict[urlobj.netloc](html_doc)
+        return info
+
+    info['title'] = extract_title_from_html(html_doc)
+    info['fulltext'] = extract_text_from_html(html_doc)[:3000]
 
     return info
 
@@ -619,10 +669,14 @@ if __name__ == '__main__':
 
     # infourl =
     # 'https://towardsdatascience.com/20-minute-data-science-crash-course-for-2020-8670ad4f727a'
-    infourl = 'https://www.infoq.cn/article/WiEUHYwyqFsYJIgLUed5'
-    print(extract_info_from_url(infourl))
+    # infourl='https://towardsdatascience.com/neural-network-embeddings-explained-4d028e6f0526'
+    # infourl = 'https://www.infoq.cn/article/WiEUHYwyqFsYJIgLUed5'
+    # infourl =
+    # 'http://xplordat.com/2019/12/23/have-unbalanced-classes-try-significant-terms/'
+    # infourl='https://mccormickml.com/2019/07/22/BERT-fine-tuning/'
+    infourl='https://segmentfault.com/a/1190000022277900'
+    doc = extract_info_from_url(infourl)
 
+    with open('tmp.json', 'w') as f:
+        json.dump(doc, f)
     # pass
-
-    # %%
-    #
