@@ -41,8 +41,11 @@
                                 <el-form-item>
                                     <el-input type="textarea"
                                               :autosize="{minRows: 5, maxRows:20}"
+                                              maxlength="5000"
+                                              minlength="10"
                                               placeholder="Paste the text to upload and get tag"
-                                              v-model="form.description"></el-input>
+                                              v-model="form.description"
+                                              show-word-limit></el-input>
                                 </el-form-item>
                             </el-tab-pane>
 
