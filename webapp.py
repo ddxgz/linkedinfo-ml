@@ -240,11 +240,14 @@ def predict_tags_by_url(info: dict) -> List[str]:
     -------
     List of str of the tagID
     """
-    if 'url' in info.keys():
-        infourl = info['url']
-    else:
-        raise KeyError
-        return []
+    # if 'url' in info.keys():
+    infourl = info['url']
+
+    if infourl is None:
+        raise KeyError('url missing in post data')
+    # print(infourl)
+    # else:
+    #     return []
 
     try:
         info = extractor.extract_info_from_url(infourl)
@@ -289,8 +292,8 @@ def pred_tags(info: Info, by_url: bool = False):
             tags_pred = predict_tags_by_url(info.dict())
         else:
             tags_pred = predict_tags(info.dict())
-    except KeyError:
-        raise HTTPException(status_code=400, detail="Data key missing")
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Data key missing: {e}")
     except TypeError:
         raise HTTPException(
             status_code=400, detail="URL is wrong or not fetchable")
