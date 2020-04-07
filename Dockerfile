@@ -21,4 +21,5 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 # CMD gunicorn -b 0.0.0.0:8070 -k gevent webapp:wsgiapp
 
 # ENTRYPOINT gunicorn -b 0.0.0.0:80 -k gevent -t 120 webapp:wsgiapp
-ENTRYPOINT ["gunicorn", "-b 0.0.0.0:80", "-k gevent", "-t 120", "webapp:wsgiapp"]
+# ENTRYPOINT ["gunicorn", "-b 0.0.0.0:80", "-k gevent", "-t 120", "webapp:wsgiapp"]
+ENTRYPOINT ["gunicorn", "-b 0.0.0.0:80", "-w 4", "-k uvicorn.workers.UvicornWorker", "-t 120", "webapp:app"]
