@@ -8,21 +8,24 @@ import uuid
 import numpy as np
 import pandas as pd
 from flask import Flask, request, send_from_directory
-from gevent.pywsgi import WSGIServer as Geventwsgiserver
-import joblib
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 import torch
 from transformers import AutoTokenizer, AutoModel
 import nltk
+from typing import List, Optional
 
 from mltb.bert import download_once_pretrained_transformers
 import extractor
 from dataset import LAN_ENCODING
 
 
-app = Flask('ML-prediction-service')
-app.secret_key = str(uuid.uuid4())
-app.debug = False
-wsgiapp = app.wsgi_app
+# app = Flask('ML-prediction-service')
+# app.secret_key = str(uuid.uuid4())
+# app.debug = False
+# wsgiapp = app.wsgi_app
+app = FastAPI()
 
 nltk.download('punkt')
 
@@ -208,13 +211,13 @@ def predict_language(info: dict) -> str:
     return 'unknown_lan'
 
 
-def predict_tags(info: dict) -> str:
+def predict_tags(info: dict) -> List[str]:
     """ An info comes in as a json (dict), use 
     description or fulltext (if presence) for prediction.
 
     Returns
     -------
-    str of the tags acronym
+    List of str of the tagsID 
     """
     if 'fulltext' in info.keys():
         text = info['fulltext']
@@ -229,7 +232,7 @@ def predict_tags(info: dict) -> str:
     return predicted[0]
 
 
-def predict_tags_by_url(info: dict) -> str:
+def predict_tags_by_url(info: dict) -> List[str]:
     """ An info comes in as a json (dict), use the url sent in to extract text
      for prediction.
 
@@ -240,54 +243,81 @@ def predict_tags_by_url(info: dict) -> str:
     if 'url' in info.keys():
         infourl = info['url']
     else:
-        return None
+        raise KeyError
+        return []
 
-    info = extractor.extract_info_from_url(infourl)
+    try:
+        info = extractor.extract_info_from_url(infourl)
+    except TypeError:
+        raise
 
     return predict_tags(info)
 
 
-@app.route('/predictions/language', methods=['POST'])
-def pred_lan():
-    if request.method == 'POST':
-        info = request.get_json()
-        lan_pred = predict_language(info)
-        resp = json.dumps({'language': lan_pred})
-        return resp
+class Info(BaseModel):
+    url: Optional[str]
+    title: Optional[str]
+    description: Optional[str]
+    fulltext: Optional[str]
 
 
-@app.route('/predictions/tags', methods=['POST'])
-def pred_tags():
-    if request.method == 'POST':
-        info = request.get_json()
+@app.post('/predictions/language')
+def pred_lan(info: Info):
+    # info = request.get_json()
+    lan_pred = predict_language(info.dict())
+    # resp = json.dumps({'language': lan_pred})
+    return {'language': lan_pred}
 
-        # if multiple url args with the same key, only the 1st will be returned
-        by_url = request.args.get('by_url', None)
-        if by_url is not None and by_url in [True, 'true', 'True', 1, '1']:
-            tags_pred = predict_tags_by_url(info)
+
+class PredTags(BaseModel):
+    tags: List[str] = []
+
+
+@app.post('/predictions/tags', response_model=PredTags)
+def pred_tags(info: Info, by_url: bool = False):
+    """ Accept POST request with data in application/json. The data body should 
+    contain either 'description', 'fulltext' or 'url'. When intend to predict by
+    'url', the requesting url should include parameter `by_url=[True, true, 1]`.
+    """
+    # if request.method == 'POST':
+    #     info = request.get_json()
+
+    # if multiple url args with the same key, only the 1st will be returned
+    # by_url = request.args.get('by_url', None)
+    try:
+        if by_url:
+            tags_pred = predict_tags_by_url(info.dict())
         else:
-            tags_pred = predict_tags(info)
-        resp = json.dumps({'tags': tags_pred})
-        return resp
+            tags_pred = predict_tags(info.dict())
+    except KeyError:
+        raise HTTPException(status_code=400, detail="Data key missing")
+    except TypeError:
+        raise HTTPException(
+            status_code=400, detail="URL is wrong or not fetchable")
+    # resp = json.dumps({'tags': tags_pred})
+    resp = PredTags()
+    resp.tags = tags_pred
+    return resp
 
 
-@app.route('/', methods=['GET'])
-def home():
-    return send_from_directory('vuejs', 'home.html')
+@app.get('/')
+async def home():
+    return FileResponse('vuejs/home.html')
 
 
 # LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
 #     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-TAGS_MODEL = TagsTextModelV3(
-    modelfile=MODEL_FILE)
-# TAGS_MODEL = TagsTestModel()
+# TAGS_MODEL = TagsTextModelV3(
+#     modelfile=MODEL_FILE)
+TAGS_MODEL = TagsTestModel()
 
 if __name__ == '__main__':
     # use gevent wsgi server
-    httpserver = Geventwsgiserver(('0.0.0.0', 5000), wsgiapp)
-    httpserver.serve_forever()
+    # httpserver = Geventwsgiserver(('0.0.0.0', 5000), wsgiapp)
+    # httpserver.serve_forever()
+    pass
 
     # with open('data/cache/infos_80_90.json', 'r') as f:
     #     infos = json.load(f)
