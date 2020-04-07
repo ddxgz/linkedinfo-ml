@@ -12,17 +12,12 @@ from collections import Counter
 import re
 import hashlib
 
-
 import requests
 import html2text
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
-import nltk
-from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 import pysnooper
 
-
-nltk.download('punkt')
 
 logger = logging.getLogger('info')
 # logger.setLevel(logging.In)
@@ -463,7 +458,7 @@ def retrieve_infoqcn_article(referer_url: str) -> dict:
 
 
 def retrieve_infoqcn_info(referer_url: str) -> dict:
-    info = {}
+    info: dict = {}
     article = retrieve_infoqcn_article(referer_url)
     article = article['data']
     content = article.get('content', '')
@@ -631,7 +626,7 @@ def get_html_from_url(infourl: str, force_download: bool = False,
 
 
 def extract_info_from_url(infourl: str) -> dict:
-    info = {}
+    info: dict = {}
     urlobj = urlparse(infourl)
     if urlobj.netloc in info_spec_dict.keys():
         logger.debug(
@@ -674,7 +669,7 @@ if __name__ == '__main__':
     # infourl =
     # 'http://xplordat.com/2019/12/23/have-unbalanced-classes-try-significant-terms/'
     # infourl='https://mccormickml.com/2019/07/22/BERT-fine-tuning/'
-    infourl='https://segmentfault.com/a/1190000022277900'
+    infourl = 'https://segmentfault.com/a/1190000022277900'
     doc = extract_info_from_url(infourl)
 
     with open('tmp.json', 'w') as f:

@@ -1,7 +1,8 @@
 * Machine Learning models for Linkedinfo.co 
 A topic tags prediction service for technical articles. The model is trained on
 the dataset from https://linkedinfo.co. Find the service at
-https://ml.linkedinfo.co/ 
+https://ml.linkedinfo.co/, Web API document see https://ml.linkedinfo.co/docs. 
+
 ** Uage
 
 #+BEGIN_SRC shell
@@ -52,4 +53,4 @@ under =./data/models/= to be loaded by the Web service.
   - [ ] new preprocessing with tf-idf
  - [X] Migrate to GCloud run
  - [ ] limit length of text on frontend
- - [ ] accept url to predict with extraction
+ - [X] accept url to predict with extraction

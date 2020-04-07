@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import random
 from collections import Counter
 import re
+from functools import partial
 
 import requests
 import html2text
@@ -23,8 +24,10 @@ from sklearn.model_selection import train_test_split
 import nltk
 from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 import pysnooper
+from typing import List, Callable
 
 import extractor
+from mltb.mltb import nlp as mnlp
 
 
 nltk.download('punkt')
@@ -167,8 +170,10 @@ def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0
     return features, labels, len_test, ds.mlb
 
 
+# Deprecated, use text_augment in mltb.nlp instead
 def augmented_samples(features, labels, col: str = 'description', level: int = 0,
-                      oversample_weight: int = None, crop_ratio: float = 0.1, *args, **kwargs):
+                      oversample_weight: int = None, crop_ratio: float = 0.1,
+                      aug_method: Callable = None, *args, **kwargs):
     """Used to augment the text col of the data set, the augmented copies will
     be randomly transformed a little
 
@@ -185,22 +190,16 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
     else:
         random_state = RAND_STATE
 
-    def text_random_crop(rec):
-        sents = nltk.word_tokenize(rec)
-        # sents = nltk.sent_tokenize(rec)
-        size = len(sents)
-        chop_size = size // (1 / crop_ratio)
-        chop_offset = random.randint(0, chop_size)
-        sents_chop = sents[chop_offset:size - chop_offset - 1]
-
-        d = TreebankWordDetokenizer()
-        return d.detokenize(sents_chop)
-
     len_ori = features.shape[0]
 
     features = pd.concat([features] * (int(level) + 1), ignore_index=True)
     labels = np.concatenate([labels] * (int(level) + 1), axis=0)
 
+    if aug_method is not None:
+        text_aug_method = aug_method
+    else:
+        text_aug_method = partial(
+           mnlp.text_random_crop, crop_by='word', crop_ratio=crop_ratio)
     # features.iloc[:len_ori][col] = features.iloc[:len_ori][col].apply(
     #     text_token_cat)
     # features.iloc[len_ori:][col] = features.iloc[len_ori:][col].apply(
@@ -208,7 +207,7 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
     # see
     # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#indexing-view-versus-copy
     features[col].iloc[len_ori:] = features[col].iloc[len_ori:].apply(
-        text_random_crop)
+        text_aug_method)
 
     return features, labels
 

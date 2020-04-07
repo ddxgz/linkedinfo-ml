@@ -7,14 +7,13 @@ import uuid
 
 import numpy as np
 import pandas as pd
-from flask import Flask, request, send_from_directory
+# from flask import Flask, request, send_from_directory
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import joblib
 import torch
 from transformers import AutoTokenizer, AutoModel
-import nltk
 from typing import List, Optional
 
 from mltb.mltb.bert import download_once_pretrained_transformers
@@ -28,7 +27,6 @@ from dataset import LAN_ENCODING
 # wsgiapp = app.wsgi_app
 app = FastAPI()
 
-nltk.download('punkt')
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/bert_uncased_L-2_H-128_A-2/"
@@ -37,8 +35,8 @@ nltk.download('punkt')
 #     "google/bert_uncased_L-4_H-256_A-4")
 PRETRAINED_BERT_WEIGHTS = "./data/models/bert_mini_finetuned_tagthr_20/"
 
-MODEL_FILE = 'data/models/tags_textbased_pred_6.joblib.gz'
-MLB_FILE = 'data/models/tags_textbased_pred_6_mlb.joblib.gz'
+MODEL_FILE = 'data/models/tags_textbased_pred_8.joblib.gz'
+MLB_FILE = 'data/models/tags_textbased_pred_8_mlb.joblib.gz'
 
 
 def singleton(cls, *args, **kwargs):
@@ -316,9 +314,9 @@ async def home():
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
 #     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-# TAGS_MODEL = TagsTextModelV3(
-#     modelfile=MODEL_FILE)
-TAGS_MODEL = TagsTestModel()
+TAGS_MODEL = TagsTextModelV3(
+    modelfile=MODEL_FILE)
+# TAGS_MODEL = TagsTestModel()
 
 if __name__ == '__main__':
     # use gevent wsgi server
