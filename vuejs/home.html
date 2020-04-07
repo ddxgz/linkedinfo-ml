@@ -128,6 +128,7 @@
                           center
                           show-icon="true"
                           title="Prediction failed! Please try again later."
+                          :description="errMsg"
                           type="error"
                           effect="dark">
                 </el-alert>
@@ -159,6 +160,7 @@
                     },
                     info: null,
                     currentStatus: STATUS_INITIAL,
+                    errMsg: '',
                 }
             },
             computed: {
@@ -198,6 +200,13 @@
 
                     }
                     ).catch(err => {
+                        // console.log(err)
+                        if (err.response) {
+                            this.errMsg = err.response.data.detail;
+                            // console.log(err.response.data);
+                            // console.log(err.response.status);
+                            // console.log(err.response.headers);
+                        }
                         this.currentStatus = STATUS_FAILED;
                     })
                 },
