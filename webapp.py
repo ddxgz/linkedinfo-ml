@@ -11,12 +11,13 @@ from flask import Flask, request, send_from_directory
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import joblib
 import torch
 from transformers import AutoTokenizer, AutoModel
 import nltk
 from typing import List, Optional
 
-from mltb.bert import download_once_pretrained_transformers
+from mltb.mltb.bert import download_once_pretrained_transformers
 import extractor
 from dataset import LAN_ENCODING
 
@@ -58,9 +59,9 @@ class PredictModel(ABC):
     @abstractmethod
     def predict(self, text):
         raise NotImplementedError(
-            'users must define __str__ to use this base class')
+            'users must define `predict` to use this base class')
 
-    def _load_model(self, modelfile: str = None):
+    def _load_model(self, modelfile: str):
         if os.path.exists(modelfile):
             model = joblib.load(modelfile)
             return model
@@ -252,7 +253,7 @@ def predict_tags_by_url(info: dict) -> List[str]:
     try:
         info = extractor.extract_info_from_url(infourl)
     except TypeError:
-        raise
+        raise ValueError("URL is wrong or not fetchable")
 
     return predict_tags(info)
 
@@ -265,7 +266,8 @@ class Info(BaseModel):
 
 
 @app.post('/predictions/language')
-def pred_lan(info: Info):
+async def pred_lan(info: Info):
+    """Not implemented yet"""
     # info = request.get_json()
     lan_pred = predict_language(info.dict())
     # resp = json.dumps({'language': lan_pred})
@@ -277,10 +279,11 @@ class PredTags(BaseModel):
 
 
 @app.post('/predictions/tags', response_model=PredTags)
-def pred_tags(info: Info, by_url: bool = False):
+async def pred_tags(info: Info, by_url: bool = False):
     """ Accept POST request with data in application/json. The data body should 
-    contain either 'description', 'fulltext' or 'url'. When intend to predict by
-    'url', the requesting url should include parameter `by_url=[True, true, 1]`.
+    contain either `description`, `fulltext` or `url`. When intend to predict by
+    `url`, the requesting url should include parameter `by_url=[True, true, 1,
+    on, yes]`.
     """
     # if request.method == 'POST':
     #     info = request.get_json()
@@ -294,18 +297,19 @@ def pred_tags(info: Info, by_url: bool = False):
             tags_pred = predict_tags(info.dict())
     except KeyError as e:
         raise HTTPException(status_code=400, detail=f"Data key missing: {e}")
-    except TypeError:
-        raise HTTPException(
-            status_code=400, detail="URL is wrong or not fetchable")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f'Value error: {e}')
     # resp = json.dumps({'tags': tags_pred})
     resp = PredTags()
     resp.tags = tags_pred
     return resp
 
 
-@app.get('/')
+@app.get('/', responses={200: {
+    "content": {"text/html": {}},
+    "description": "Return the home page of the app."}})
 async def home():
-    return FileResponse('vuejs/home.html')
+    return FileResponse('vuejs/home.html', media_type='text/html')
 
 
 # LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
