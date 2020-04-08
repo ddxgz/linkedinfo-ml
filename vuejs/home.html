@@ -97,6 +97,12 @@
                                              target="_blank"> {{ item }} </el-link>
                                 </el-tag>
                                 <p>Click on a tag to find more</p>
+                                <p></p>
+                                <p>Don't feel right with the tags? Your feedback is
+                                    valuable for improving the model! Please suggest
+                                    your tags, <el-button type="text"
+                                               @click="openTagSuggestions">click here</el-button>
+                                </p>
                             </div>
                         </el-card>
                     </el-row>
@@ -164,7 +170,7 @@
                 }
             },
             computed: {
-                ifByUrl() {
+                isByUrl() {
                     return this.activeTab === 'byUrl';
                 },
                 isInitial() {
@@ -192,7 +198,7 @@
                         this.form,
                         {
                             headers: { 'Content-Type': 'application/json' },
-                            params: { by_url: this.ifByUrl }
+                            params: { by_url: this.isByUrl }
                         }
                     ).then(response => {
                         this.currentStatus = STATUS_SUCCESS;
@@ -223,6 +229,69 @@
                 },
                 handleClick(tab, event) {
                     console.log(tab, event);
+                },
+                submitSuggest(value) {
+                    var data = {};
+                    var predTags = this.info.tags
+
+                    data['tags'] = predTags.join(', ');
+                    data['tags_suggest'] = value;
+
+                    if (this.isByUrl) {
+                        data['url'] = this.form.url;
+                    } else {
+                        data['description'] = this.form.description;
+                    }
+                    // console.log(data);
+
+                    var rsp = '';
+                    axios.post('/tag-suggestions',
+                        data,
+                        {
+                            headers: { 'Content-Type': 'application/json' },
+                        }
+                    ).then(response => {
+                        // this.currentStatus = STATUS_SUCCESS;
+                        rsp = response.data;
+                    }
+                    ).catch(err => {
+                        // console.log(err)
+                        if (err.response) {
+                            rsp = err.response.data.detail;
+                            // console.log(err.response.data);
+                            // console.log(err.response.status);
+                            // console.log(err.response.headers);
+                        }
+                    })
+                    return rsp;
+                },
+                openTagSuggestions() {
+                    this.$prompt('separate by "," or ";"', 'Please input suggested tags', {
+                        confirmButtonText: 'Submit',
+                        cancelButtonText: 'Cancel',
+                        //                 inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
+                        //   inputErrorMessage: '邮箱格式不正确',
+                        beforeClose: (action, instance, done) => {
+                            if (action == 'confirm') {
+                                // console.log(instance.inputValue);
+                                var rsp = this.submitSuggest(instance.inputValue);
+                                console.log(rsp)
+                                done();
+                            } else {
+                                done();
+                            }
+                        }
+                    }).then(({ value }) => {
+                        this.$message({
+                            type: 'success',
+                            message: 'The tags you suggested: ' + value
+                        });
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: 'Feedback cancelled'
+                        });
+                    });
                 }
             }
         })

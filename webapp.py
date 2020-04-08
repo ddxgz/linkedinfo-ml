@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import os
 import json
 import uuid
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import requests
 import joblib
 import torch
 from transformers import AutoTokenizer, AutoModel
@@ -270,6 +272,35 @@ async def pred_lan(info: Info):
     lan_pred = predict_language(info.dict())
     # resp = json.dumps({'language': lan_pred})
     return {'language': lan_pred}
+
+
+class TagSuggestions(BaseModel):
+    url: Optional[str]
+    description: Optional[str]
+    tags: str
+    tags_suggest: str
+
+
+@app.post('/tag-suggestions')
+async def tag_suggestions(info: TagSuggestions):
+    post_time = datetime.now().isoformat()
+    data = {
+        'postAt': post_time,
+        'title': '',
+        'url': info.url if info.url is not None else '',
+        'description': info.description if info.description is not None else '',
+        'poster': 'info.poster',
+        'tags': info.tags,
+        'tags_suggest': info.tags_suggest,
+    }
+    # print(data)
+    # headers = {'Content-type': 'application/json'}
+    resp = requests.post(
+        'https://www.linkedinfo.co/tag-suggestions', json=data)
+    # print(resp.status_code)
+    # print(resp.text)
+
+    return f'You submitted {info.tags_suggest}'
 
 
 class PredTags(BaseModel):
