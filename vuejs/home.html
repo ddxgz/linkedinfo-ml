@@ -98,10 +98,15 @@
                                 </el-tag>
                                 <p>Click on a tag to find more</p>
                                 <p></p>
-                                <p>Don't feel right with the tags? Your feedback is
-                                    valuable for improving the model! Please suggest
-                                    your tags, <el-button type="text"
-                                               @click="openTagSuggestions">click here</el-button>
+                                <p></p>
+                                <h4>Don't feel right with the tags?</h4>
+                                <p>Please <el-button type="text"
+                                               @click="openTagSuggestions">click
+                                        here</el-button> to suggest
+                                    your tags.</p>
+                                <p>
+                                    Your feedback is
+                                    valuable for improving the model!
                                 </p>
                             </div>
                         </el-card>
@@ -122,13 +127,13 @@
                 </el-alert>
 
                 <p></p>
-                <el-alert title="Warning!"
+                <!-- <el-alert title="Warning!"
                           type="error"
                           center
                           :closable="false"
                           effect="dark"
                           description="DO NOT take the result seriously, this is just for experimenting and having fun.">
-                </el-alert>
+                </el-alert> -->
                 <p></p>
                 <el-alert v-if="isFailed"
                           center
