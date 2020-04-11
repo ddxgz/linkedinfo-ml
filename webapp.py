@@ -16,6 +16,8 @@ import requests
 import joblib
 import torch
 from transformers import AutoTokenizer, AutoModel
+import nltk
+# from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 from typing import List, Optional
 
 from mltb.mltb.bert import download_once_pretrained_transformers
@@ -181,8 +183,79 @@ class TagsTextModelV3(PredictModel):
         return pred_transformed
 
 
+def get_tags_map() -> dict:
+    tags = {"ML": "machine-learning"}
+    headers = {'Accept': 'application/json'}
+    resp = requests.get(
+        'https://www.linkedinfo.co/tag-map', headers=headers)
+
+    if resp.status_code == 200:
+        try:
+            tags = resp.json()
+            return tags
+        except ValueError as e:
+            return tags
+    return tags
+
+
+def get_tags_list() -> List[dict]:
+    tags = [{'tagID': 'python', 'label': 'Python'}]
+    headers = {'Accept': 'application/json'}
+    resp = requests.get(
+        'https://www.linkedinfo.co/tags', headers=headers)
+
+    if resp.status_code == 200:
+        try:
+            tags = resp.json()
+            return tags
+        except ValueError as e:
+            return tags
+    return tags
+
+
+def append_map_tags(tags: List[str], info: dict) -> List[str]:
+    map_tags: List[str] = []
+    print(info)
+    if info.get('fulltext'):
+        text = info['fulltext']
+    else:
+        text = info['description']
+
+    if info.get('title'):
+        text = f"{info['title']}. {text}"
+
+    # print(text)
+    toks = nltk.word_tokenize(text)
+    if len(toks) > 20:
+        toks = toks[:20]
+
+    # print(toks)
+
+    # d = TreebankWordDetokenizer()
+    # text = d.detokenize(toks).lower()
+
+    # print(text)
+    for tag in TAGS_LIST:
+        if tag['label'] in toks:
+            map_tags.append(tag['tagID'])
+        if len(tag['label']) > 9:
+            if tag['label'] in text:
+                map_tags.append(tag['tagID'])
+
+    for k, v in TAGS_MAP.items():
+        if k in text:
+            map_tags.append(v)
+
+    # print(tags)
+    # print(map_tags)
+    if map_tags:
+        tags = list(tags) + map_tags
+
+    return list(set(tags))
+
+
 def predict_language(info: dict) -> str:
-    """ An info comes in as a json (dict) in the following format, use title and 
+    """ An info comes in as a json (dict) in the following format, use title and
     description for prediction.
     {
             "key": "",
@@ -213,19 +286,19 @@ def predict_language(info: dict) -> str:
 
 
 def predict_tags(info: dict) -> List[str]:
-    """ An info comes in as a json (dict), use 
+    """ An info comes in as a json (dict), use
     description or fulltext (if presence) for prediction.
 
     Returns
     -------
-    List of str of the tagsID 
+    List of str of the tagsID
     """
-    if 'fulltext' in info.keys():
+    if info.get('fulltext'):
         text = info['fulltext']
     else:
         text = info['description']
 
-    if 'title' in info.keys():
+    if info.get('title'):
         text = f"{info['title']}. {text}"
 
     predicted = TAGS_MODEL.predict([text])
@@ -308,8 +381,8 @@ class PredTags(BaseModel):
 
 
 @app.post('/predictions/tags', response_model=PredTags)
-async def pred_tags(info: Info, by_url: bool = False):
-    """ Accept POST request with data in application/json. The data body should 
+async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
+    """ Accept POST request with data in application/json. The data body should
     contain either `description`, `fulltext` or `url`. When intend to predict by
     `url`, the requesting url should include parameter `by_url=[True, true, 1,
     on, yes]`.
@@ -325,10 +398,13 @@ async def pred_tags(info: Info, by_url: bool = False):
         else:
             tags_pred = predict_tags(info.dict())
     except KeyError as e:
-        raise HTTPException(status_code=400, detail=f"Data key missing: {e}")
+        raise HTTPException(status_code=400,
+                            detail=f"Data key missing: {e}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f'Value error: {e}')
     # resp = json.dumps({'tags': tags_pred})
+    if not only_model:
+        tags_pred = append_map_tags(tags_pred, info.dict())
     resp = PredTags()
     resp.tags = tags_pred
     return resp
@@ -348,6 +424,8 @@ async def home():
 TAGS_MODEL = TagsTextModelV3(
     modelfile=MODEL_FILE)
 # TAGS_MODEL = TagsTestModel()
+TAGS_MAP = get_tags_map()
+TAGS_LIST = get_tags_list()
 
 if __name__ == '__main__':
     # use gevent wsgi server
