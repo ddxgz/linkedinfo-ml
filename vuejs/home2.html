@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Topic Tags Predication</title>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- Load required Bootstrap and BootstrapVue CSS -->
+    <link type="text/css"
+          rel="stylesheet"
+          href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css"
+          rel="stylesheet"
+          href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+
+    <!-- Load polyfills to support older browsers -->
+    <script src="//polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver"
+            crossorigin="anonymous"></script>
+
+    <!-- Load Vue followed by BootstrapVue -->
+    <script src="//unpkg.com/vue@latest/dist/vue.min.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+
+    <!-- Load the following for BootstrapVueIcons support -->
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"></script>
+
+    <meta name="theme-color"
+          content="#563d7c">
+    <style>
+        .bd-placeholder-img {
+            font-size: 1.125rem;
+            text-anchor: middle;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        @media (min-width: 768px) {
+            .bd-placeholder-img-lg {
+                font-size: 3.5rem;
+            }
+        }
+
+        html {
+            font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+            html {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
+        <h5 class="my-0 mr-md-auto font-weight-normal">LinkedInfo ML</h5>
+        <nav class="my-2 my-md-0 mr-md-3">
+            <a class="p-2 text-dark"
+               href="#">Tag Prediction</a>
+            <a class="p-2 text-dark"
+               href="#">Data</a>
+            <a class="p-2 text-dark"
+               href="#">About</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div id="app">
+            <h1>Tag Prediction</h1>
+            <p class="lead">
+                This is a topic tags prediction service for technical articles.
+                It uses BERT and is trained on the dataset of <a href="https://www.linkedinfo.co/"
+                   target="_blank">LinkedInfo.co</a>
+            </p>
+            <p>
+                You can either choose submit the text or the URL of the article you
+                want to get tags.
+            </p>
+            <div>
+                <b-form ref="form"
+                        :model="form">
+                    <b-tabs v-model="activeTab"
+                            @tab-click="handleClick"
+                            content-class="mt-3"
+                            align="center">
+                        <b-tab title="Text"
+                               name="byText">
+                            <label for="article-text">Paste the text of an article to upload and get tag</label>
+
+                            <!-- <b-form-item label="Title">
+                                    <b-input v-model="form.title"></b-input>
+                                </b-form-item> -->
+                            <!-- <b-form-item label="Article Text"> -->
+                            <b-form-textarea id="article-text"
+                                             rows="5"
+                                             max-rows="20"
+                                             maxlength="5000"
+                                             :state="isValidText"
+                                             placeholder="The length of the text should be between 10 - 5000 chars"
+                                             v-model="form.description"
+                                             show-word-limit>
+                            </b-form-textarea>
+                        </b-tab>
+
+                        <b-tab title="URL"
+                               name="byUrl">
+                            <label for="article-url">Paste the URL of an article to upload and
+                                get tag</label>
+
+                            <!-- <b-form-item label="Title">
+                                    <b-input v-model="form.title"></b-input>
+                                </b-form-item> -->
+                            <!-- <b-form-item label="Article Text"> -->
+                            <b-form-input id="article-url"
+                                          type="url"
+                                          placeholder="Please include the protocol"
+                                          v-model="form.url">
+                            </b-form-input>
+                        </b-tab>
+                    </b-tabs>
+                    <p></p>
+                    <b-form-item>
+                        <b-button variant="outline-primary"
+                                  @click="onSubmit">Predict</b-button>
+                    </b-form-item>
+                </b-form>
+
+            </div>
+            <p></p>
+
+            <!-- <b-image style="width: 100px; height: 100px"
+                      :src="image"
+                      fit="contain"></b-image> -->
+
+            <b-row>
+                <p></p>
+            </b-row>
+            <div v-if="isSuccess"
+                 align="center">
+                <b-card class="box-card"
+                        align="center">
+                    <b-card-title>The most possible tag is: </b-card-title>
+                    <div>
+                        <h5>
+                            <b-badge v-for="item in info.tags"
+                                     variant="secondary"
+                                     pill
+                                     :href="'https://www.linkedinfo.co/tags/'+item"
+                                     target="_blank">
+                                {{ item }}
+                            </b-badge>
+                        </h5>
+                        <p>Click on a tag to find more</p>
+                        <p></p>
+                        <p></p>
+                        <h5>Don't feel right with the tags?</h5>
+                        <p>Please <b-link type="text"
+                                    v-b-modal.modal-tag-suggestion>click
+                                here</b-link> to suggest
+                            your tags.</p>
+                        <p>
+                            Your feedback is
+                            valuable for improving the model!
+                        </p>
+
+
+                        <b-modal id="modal-tag-suggestion"
+                                 ref="modal"
+                                 title="Submit Your Suggested Tags"
+                                 @ok="handleOk"
+                                 @close="resetModal"
+                                 centered>
+                            <form ref="form"
+                                  @submit.stop.prevent="handleSubmit">
+                                <b-form-group :state="nameState"
+                                              label="separate by ',' or ';'"
+                                              label-for="name-input"
+                                              invalid-feedback="Text is required">
+                                    <b-form-input id="name-input"
+                                                  v-model="tagSuggest"
+                                                  :state="nameState"
+                                                  required></b-form-input>
+                                </b-form-group>
+                            </form>
+                        </b-modal>
+                    </div>
+                </b-card>
+
+                <!-- <img :src="image" /> -->
+                <!-- <b-alert title="The most possible lesion type is: "
+                              type="success"
+                              description="这是一句绕口令：黑灰化肥会挥发发灰黑化肥挥发；灰黑化肥会挥发发黑灰化肥发挥。 黑灰化肥会挥发发灰黑化肥黑灰挥发化为灰……">
+                    </b-alert> -->
+            </div>
+            <b-alert v-if="isSaving"
+                     center
+                     show-icon="true"
+                     title="Predicting..."
+                     type="info"
+                     effect="dark">
+            </b-alert>
+
+            <p></p>
+            <!-- <b-alert title="Warning!"
+                          type="error"
+                          center
+                          :closable="false"
+                          effect="dark"
+                          description="DO NOT take the result seriously, this is just for experimenting and having fun.">
+                </b-alert> -->
+            <p></p>
+            <b-alert v-if="isFailed"
+                     center
+                     show-icon="true"
+                     title="Prediction failed! Please try again later."
+                     :description="errMsg"
+                     type="error"
+                     effect="dark">
+            </b-alert>
+            <b-alert v-if="isExceeded"
+                     center
+                     show-icon="true"
+                     title="Submit too many, come again next time please!"
+                     type="warning"
+                     effect="dark">
+            </b-alert>
+        </div>
+
+        <footer class="pt-4 my-md-5 pt-md-5 border-top">
+            <div class="row">
+                <div class="col-12 col-md">
+                    <img class="mb-2"
+                         src="https://www.linkedinfo.co/static/images/linkicon.png"
+                         alt=""
+                         width="24"
+                         height="24">
+                    <small class="d-block mb-3 text-muted">&copy; 2017-2019</small>
+                </div>
+                <div class="col-6 col-md">
+                    <h5>Features</h5>
+                    <ul class="list-unstyled text-small">
+                        <li><a class="text-muted"
+                               href="#">Cool stuff</a></li>
+                        <li><a class="text-muted"
+                               href="#">Random feature</a></li>
+                        <li><a class="text-muted"
+                               href="#">Team feature</a></li>
+                        <li><a class="text-muted"
+                               href="#">Stuff for developers</a></li>
+                        <li><a class="text-muted"
+                               href="#">Another one</a></li>
+                        <li><a class="text-muted"
+                               href="#">Last time</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md">
+                    <h5>Resources</h5>
+                    <ul class="list-unstyled text-small">
+                        <li><a class="text-muted"
+                               href="#">Resource</a></li>
+                        <li><a class="text-muted"
+                               href="#">Resource name</a></li>
+                        <li><a class="text-muted"
+                               href="#">Another resource</a></li>
+                        <li><a class="text-muted"
+                               href="#">Final resource</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md">
+                    <h5>About</h5>
+                    <ul class="list-unstyled text-small">
+                        <li><a class="text-muted"
+                               href="#">Team</a></li>
+                        <li><a class="text-muted"
+                               href="#">Locations</a></li>
+                        <li><a class="text-muted"
+                               href="#">Privacy</a></li>
+                        <li><a class="text-muted"
+                               href="#">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+
+    <script type="module">
+
+        const STATUS_INITIAL = 0, STATUS_SAVING = 1, STATUS_SUCCESS = 2, STATUS_FAILED = 3, STATUS_EXCEEDED = 4;
+        var app = new Vue({
+            el: '#app',
+            data() {
+                return {
+                    activeTab: 'byText',
+                    form: {
+                        url: '',
+                        title: '',
+                        description: '',
+                    },
+                    info: null,
+                    currentStatus: STATUS_INITIAL,
+                    tagSuggest: '',
+                    errMsg: '',
+                    nameState: null,
+                }
+            },
+            computed: {
+                isByUrl() {
+                    return this.activeTab === 'byUrl';
+                },
+                isValidText() {
+                    if (this.form.description.length > 0 && this.form.description.length < 10) {
+                        return false;
+                    }
+                    if (this.form.description.length > 5000) {
+                        return false;
+                    }
+                    return null;
+                },
+                isInitial() {
+                    return this.currentStatus === STATUS_INITIAL;
+                },
+                isSaving() {
+                    return this.currentStatus === STATUS_SAVING;
+                },
+                isSuccess() {
+                    return this.currentStatus === STATUS_SUCCESS;
+                },
+                isFailed() {
+                    return this.currentStatus === STATUS_FAILED;
+                },
+                isExceeded() {
+                    return this.currentStatus === STATUS_EXCEEDED;
+                }
+            },
+            methods: {
+                onSubmit() {
+                    // console.log('submit!');
+                    this.currentStatus = STATUS_SAVING;
+
+                    axios.post('/predictions/tags',
+                        this.form,
+                        {
+                            headers: { 'Content-Type': 'application/json' },
+                            params: { by_url: this.isByUrl }
+                        }
+                    ).then(response => {
+                        this.currentStatus = STATUS_SUCCESS;
+                        this.info = response.data;
+
+                    }
+                    ).catch(err => {
+                        // console.log(err)
+                        if (err.response) {
+                            this.errMsg = err.response.data.detail;
+                            // console.log(err.response.data);
+                            // console.log(err.response.status);
+                            // console.log(err.response.headers);
+                        }
+                        this.currentStatus = STATUS_FAILED;
+                    })
+                },
+                showResult(response, file, fileList) {
+                    this.currentStatus = STATUS_SUCCESS;
+                    this.info = response;
+                },
+                onError(err, file, fileList) {
+                    this.currentStatus = STATUS_FAILED;
+                    alert("Error regarding file: " + file)
+                },
+                onExceed(files, fileList) {
+                    this.currentStatus = STATUS_EXCEEDED;
+                },
+                handleClick(tab, event) {
+                    console.log(tab, event);
+                },
+                submitSuggest(value) {
+                    var data = {};
+                    var predTags = this.info.tags
+
+                    data['tags'] = predTags.join(', ');
+                    data['tags_suggest'] = value;
+
+                    if (this.isByUrl) {
+                        data['url'] = this.form.url;
+                    } else {
+                        data['description'] = this.form.description;
+                    }
+                    // console.log(data);
+
+                    var rsp = '';
+                    axios.post('/tag-suggestions',
+                        data,
+                        {
+                            headers: { 'Content-Type': 'application/json' },
+                        }
+                    ).then(response => {
+                        // this.currentStatus = STATUS_SUCCESS;
+                        rsp = response.data;
+                    }
+                    ).catch(err => {
+                        // console.log(err)
+                        if (err.response) {
+                            rsp = err.response.data.detail;
+                            // console.log(err.response.data);
+                            // console.log(err.response.status);
+                            // console.log(err.response.headers);
+                        }
+                    })
+                    return rsp;
+                },
+                openTagSuggestions() {
+                    this.$prompt('separate by "," or ";"', 'Please input suggested tags', {
+                        confirmButtonText: 'Submit',
+                        cancelButtonText: 'Cancel',
+                        //                 inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
+                        //   inputErrorMessage: '邮箱格式不正确',
+                        beforeClose: (action, instance, done) => {
+                            if (action == 'confirm') {
+                                // console.log(instance.inputValue);
+                                var rsp = this.submitSuggest(instance.inputValue);
+                                console.log(rsp)
+                                done();
+                            } else {
+                                done();
+                            }
+                        }
+                    }).then(({ value }) => {
+                        this.$message({
+                            type: 'success',
+                            message: 'The tags you suggested: ' + value
+                        });
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: 'Feedback cancelled'
+                        });
+                    });
+                },
+                checkFormValidity() {
+                    const valid = this.$refs.form.checkValidity()
+                    this.nameState = valid
+                    return valid
+                },
+                resetModal() {
+                    this.tagSuggest = ''
+                    this.nameState = null
+                },
+                handleOk(bvModalEvt) {
+                    // Prevent modal from closing
+                    bvModalEvt.preventDefault()
+                    // Trigger submit handler
+                    this.handleSubmit()
+                },
+                handleSubmit() {
+                    // Exit when the form isn't valid
+                    if (!this.checkFormValidity()) {
+                        return
+                    }
+                    // Push the name to submitted names
+                    // this.submittedNames.push(this.name)
+                    // var rsp = this.submitSuggest(instance.inputValue);
+                    console.log(this.tagSuggest);
+                    // Hide the modal manually
+                    this.$nextTick(() => {
+                        this.$bvModal.hide('modal-tag-suggestion')
+                    })
+                    this.resetModal();
+                }
+            }
+        })
+    </script>
+
+    <style>
+        #app {
+            text-align: center;
+        }
+
+        .text {
+            font-size: 20px;
+        }
+
+        .item {
+            padding: 18px 0;
+        }
+
+        .box-card {
+            width: 480px;
+        }
+
+        .container {
+            max-width: 960px;
+        }
+
+        .pricing-header {
+            max-width: 700px;
+        }
+
+        .card-deck .card {
+            min-width: 220px;
+        }
+    </style>
+</body>
+
+</html>
