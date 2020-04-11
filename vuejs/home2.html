@@ -72,8 +72,10 @@
     </div>
 
     <div class="container">
-        <div id="app">
+        <div id="app"
+             class="appmain">
             <h1>Tag Prediction</h1>
+            <p></p>
             <p class="lead">
                 This is a topic tags prediction service for technical articles.
                 It uses BERT and is trained on the dataset of <a href="https://www.linkedinfo.co/"
@@ -83,7 +85,8 @@
                 You can either choose submit the text or the URL of the article you
                 want to get tags.
             </p>
-            <div>
+            <p></p>
+            <div class="submitform">
                 <b-form ref="form"
                         :model="form">
                     <b-tabs v-model="activeTab"
@@ -199,12 +202,16 @@
                               description="这是一句绕口令：黑灰化肥会挥发发灰黑化肥挥发；灰黑化肥会挥发发黑灰化肥发挥。 黑灰化肥会挥发发灰黑化肥黑灰挥发化为灰……">
                     </b-alert> -->
             </div>
-            <b-alert v-if="isSaving"
+            <!-- <b-alert :show="isSuccess"
                      center
-                     show-icon="true"
-                     title="Predicting..."
-                     type="info"
-                     effect="dark">
+                     variant="success">
+                {{ successMsg}}
+            </b-alert> -->
+
+            <b-alert :show="isSaving"
+                     center
+                     variant="secondary">
+                Predicting...
             </b-alert>
 
             <p></p>
@@ -216,20 +223,20 @@
                           description="DO NOT take the result seriously, this is just for experimenting and having fun.">
                 </b-alert> -->
             <p></p>
-            <b-alert v-if="isFailed"
+            <b-alert :show="isFailed"
                      center
-                     show-icon="true"
-                     title="Prediction failed! Please try again later."
-                     :description="errMsg"
-                     type="error"
-                     effect="dark">
+                     variant="danger">
+                <h5 class="alert-heading">Prediction failed! Please try
+                    again later.</h5>
+                <p>{{errMsg}}</p>
             </b-alert>
-            <b-alert v-if="isExceeded"
+            <b-alert :show="isExceeded"
                      center
                      show-icon="true"
-                     title="Submit too many, come again next time please!"
+                     title=""
                      type="warning"
                      effect="dark">
+                Submit too many, come again next time please!
             </b-alert>
         </div>
 
@@ -243,7 +250,7 @@
                          height="24">
                     <small class="d-block mb-3 text-muted">&copy; 2017-2019</small>
                 </div>
-                <div class="col-6 col-md">
+                <!-- <div class="col-6 col-md">
                     <h5>Features</h5>
                     <ul class="list-unstyled text-small">
                         <li><a class="text-muted"
@@ -259,21 +266,21 @@
                         <li><a class="text-muted"
                                href="#">Last time</a></li>
                     </ul>
-                </div>
+                </div> -->
                 <div class="col-6 col-md">
                     <h5>Resources</h5>
                     <ul class="list-unstyled text-small">
                         <li><a class="text-muted"
-                               href="#">Resource</a></li>
+                               href="#">LinkedInfo.co</a></li>
                         <li><a class="text-muted"
-                               href="#">Resource name</a></li>
+                               href="#">LinkedInfo-ML</a></li>
                         <li><a class="text-muted"
-                               href="#">Another resource</a></li>
+                               href="#">Data</a></li>
                         <li><a class="text-muted"
-                               href="#">Final resource</a></li>
+                               href="#">About</a></li>
                     </ul>
                 </div>
-                <div class="col-6 col-md">
+                <!-- <div class="col-6 col-md">
                     <h5>About</h5>
                     <ul class="list-unstyled text-small">
                         <li><a class="text-muted"
@@ -285,7 +292,7 @@
                         <li><a class="text-muted"
                                href="#">Terms</a></li>
                     </ul>
-                </div>
+                </div> -->
             </div>
         </footer>
     </div>
@@ -298,7 +305,8 @@
             el: '#app',
             data() {
                 return {
-                    activeTab: 'byText',
+                    activeTab: 0,
+                    // activeTab: 'byText',
                     form: {
                         url: '',
                         title: '',
@@ -308,12 +316,14 @@
                     currentStatus: STATUS_INITIAL,
                     tagSuggest: '',
                     errMsg: '',
+                    successMsg: '',
                     nameState: null,
                 }
             },
             computed: {
                 isByUrl() {
-                    return this.activeTab === 'byUrl';
+                    // return this.activeTab === 'byUrl';
+                    return this.activeTab === 1;
                 },
                 isValidText() {
                     if (this.form.description.length > 0 && this.form.description.length < 10) {
@@ -354,7 +364,6 @@
                     ).then(response => {
                         this.currentStatus = STATUS_SUCCESS;
                         this.info = response.data;
-
                     }
                     ).catch(err => {
                         // console.log(err)
@@ -402,8 +411,9 @@
                             headers: { 'Content-Type': 'application/json' },
                         }
                     ).then(response => {
-                        // this.currentStatus = STATUS_SUCCESS;
                         rsp = response.data;
+                        // this.currentStatus = STATUS_SUCCESS;
+                        // this.successMsg = rsp;
                     }
                     ).catch(err => {
                         // console.log(err)
@@ -466,8 +476,9 @@
                     }
                     // Push the name to submitted names
                     // this.submittedNames.push(this.name)
-                    // var rsp = this.submitSuggest(instance.inputValue);
-                    console.log(this.tagSuggest);
+                    this.submitSuggest(this.tagSuggest);
+                    // console.log(rsp)
+                    // console.log(this.tagSuggest);
                     // Hide the modal manually
                     this.$nextTick(() => {
                         this.$bvModal.hide('modal-tag-suggestion')
@@ -483,10 +494,6 @@
             text-align: center;
         }
 
-        .text {
-            font-size: 20px;
-        }
-
         .item {
             padding: 18px 0;
         }
@@ -496,15 +503,20 @@
         }
 
         .container {
+            padding-top: 20px;
+            padding-bottom: 20px;
             max-width: 960px;
         }
 
-        .pricing-header {
-            max-width: 700px;
+        .appmain {
+            max-width: 960px;
+            min-height: 500px;
+            padding-bottom: 20px;
         }
 
-        .card-deck .card {
-            min-width: 220px;
+        .submitform {
+            padding-top: 40px;
+            padding-bottom: 20px;
         }
     </style>
 </body>

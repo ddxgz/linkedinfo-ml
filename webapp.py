@@ -215,7 +215,7 @@ def get_tags_list() -> List[dict]:
 
 def append_map_tags(tags: List[str], info: dict) -> List[str]:
     map_tags: List[str] = []
-    print(info)
+    # print(info)
     if info.get('fulltext'):
         text = info['fulltext']
     else:
