@@ -68,8 +68,9 @@ class PredictModel(ABC):
             model = joblib.load(modelfile)
             return model
         else:
-            raise FileNotFoundError('Model file not exists! The model should be'
-                                    'place under ./data/models/')
+            cwd = os.getcwd()
+            raise FileNotFoundError(f'Model file not exists! The model should be'
+                                    'place under ./data/models/. CWD: {cwd}')
 
 
 @singleton

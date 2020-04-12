@@ -8,7 +8,6 @@ data/infos/
 .ipynb_checkpoints/*
 /notebooks/*
 /unused/*
-Dockerfile
 .DS_Store
 .gitignore
 README.md

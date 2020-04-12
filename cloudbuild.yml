@@ -4,18 +4,20 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/data-science-258408/linkedinfo-ml-model']
 - name: 'gcr.io/cloud-builders/gcloud'
+  args:
     - 'run'
     - 'deploy'
     - 'linkedinfo-tag-pred'
-    - '--image'
-    - 'gcr.io/data-science-258408/linkedinfo-ml-model:$COMMIT_SHA'
-    - '--region'
-    - 'us-central1'
     - '--platform'
     - 'managed'
+    - '--region'
+    - 'us-central1'
+    - '--image'
+    - 'gcr.io/data-science-258408/linkedinfo-ml-model'
     - '--memory'
     - '1024'
     - '--port'
     - '80'
+    - '--allow-unauthenticated'
 images:
 - gcr.io/data-science-258408/linkedinfo-ml-model
