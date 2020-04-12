@@ -18,7 +18,7 @@ import torch
 from transformers import AutoTokenizer, AutoModel
 import nltk
 # from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
-from typing import List, Optional
+from typing import List, Tuple, Optional
 
 from mltb.mltb.bert import download_once_pretrained_transformers
 import extractor
@@ -332,6 +332,18 @@ def predict_tags_by_url(info: dict) -> List[str]:
     return predict_tags(info)
 
 
+def check_valid_request(info: dict, by_url: bool = False, only_model: bool = False) -> Tuple[bool, str]:
+    if by_url:
+        infourl = info['url']
+        if infourl is None:
+            return False, 'URL missing in post data.'
+    else:
+        toks = nltk.word_tokenize(info['description'])
+        if len(toks) < 5:
+            return False, 'Too short text for prediction.'
+    return True, ''
+
+
 class Info(BaseModel):
     url: Optional[str]
     title: Optional[str]
@@ -393,6 +405,10 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
 
     # if multiple url args with the same key, only the 1st will be returned
     # by_url = request.args.get('by_url', None)
+    valid_req, msg = check_valid_request(info.dict(), by_url, only_model)
+    if not valid_req:
+        raise HTTPException(status_code=400, detail=f'Value error: {msg}')
+
     try:
         if by_url:
             tags_pred = predict_tags_by_url(info.dict())
@@ -403,9 +419,10 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
                             detail=f"Data key missing: {e}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f'Value error: {e}')
-    # resp = json.dumps({'tags': tags_pred})
+
     if not only_model:
         tags_pred = append_map_tags(tags_pred, info.dict())
+
     resp = PredTags()
     resp.tags = tags_pred
     return resp

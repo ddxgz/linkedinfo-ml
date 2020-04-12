@@ -226,9 +226,8 @@
             <b-alert :show="isFailed"
                      center
                      variant="danger">
-                <h5 class="alert-heading">Prediction failed! Please try
-                    again later.</h5>
-                <p>{{errMsg}}</p>
+                <h5 class="alert-heading">Prediction failed! </h5>
+                <p>Please try again later, or see the error message: {{errMsg}}</p>
             </b-alert>
             <b-alert :show="isExceeded"
                      center
