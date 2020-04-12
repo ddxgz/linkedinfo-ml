@@ -415,7 +415,7 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     "content": {"text/html": {}},
     "description": "Return the home page of the app."}})
 async def home():
-    return FileResponse('vuejs/home2.html', media_type='text/html')
+    return FileResponse('vuejs/home-bootstrap-vue.html', media_type='text/html')
 
 
 # LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')

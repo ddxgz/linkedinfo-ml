@@ -67,7 +67,7 @@
             <a class="p-2 text-dark"
                href="#">Data</a>
             <a class="p-2 text-dark"
-               href="#">About</a>
+               href="https://www.linkedinfo.co/about">About</a>
         </nav>
     </div>
 
@@ -271,13 +271,15 @@
                     <h5>Resources</h5>
                     <ul class="list-unstyled text-small">
                         <li><a class="text-muted"
-                               href="#">LinkedInfo.co</a></li>
+                               href="https://www.linkedinfo.co">LinkedInfo.co</a></li>
                         <li><a class="text-muted"
-                               href="#">LinkedInfo-ML</a></li>
+                               href="https://ml.linkedinfo.co">LinkedInfo-ML</a></li>
+                        <li><a class="text-muted"
+                               href="https://www.linkedinfo.co/tags">Tags</a></li>
                         <li><a class="text-muted"
                                href="#">Data</a></li>
                         <li><a class="text-muted"
-                               href="#">About</a></li>
+                               href="https://www.linkedinfo.co/about">About</a></li>
                     </ul>
                 </div>
                 <!-- <div class="col-6 col-md">
@@ -430,8 +432,6 @@
                     this.$prompt('separate by "," or ";"', 'Please input suggested tags', {
                         confirmButtonText: 'Submit',
                         cancelButtonText: 'Cancel',
-                        //                 inputPattern: /[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?/,
-                        //   inputErrorMessage: '邮箱格式不正确',
                         beforeClose: (action, instance, done) => {
                             if (action == 'confirm') {
                                 // console.log(instance.inputValue);
