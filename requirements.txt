@@ -6,10 +6,10 @@ fastapi==0.54.0
 gunicorn==20.0.4
 gevent==1.4.0
 html2text==2019.8.11
-joblib==0.13.2
+joblib==0.14.1
 matplotlib>=2.2.2
-mypy==0.701
-mypy-extensions==0.4.1
+mypy==0.770
+mypy-extensions==0.4.3
 nlpaug==0.0.13.3
 nltk==3.4.5
 pandas==1.0.1
