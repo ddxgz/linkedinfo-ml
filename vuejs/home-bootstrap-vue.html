@@ -30,32 +30,6 @@
 
     <meta name="theme-color"
           content="#563d7c">
-    <style>
-        .bd-placeholder-img {
-            font-size: 1.125rem;
-            text-anchor: middle;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        @media (min-width: 768px) {
-            .bd-placeholder-img-lg {
-                font-size: 3.5rem;
-            }
-        }
-
-        html {
-            font-size: 14px;
-        }
-
-        @media (min-width: 768px) {
-            html {
-                font-size: 16px;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -81,7 +55,7 @@
                 It uses BERT and is trained on the dataset of <a href="https://www.linkedinfo.co/"
                    target="_blank">LinkedInfo.co</a>
             </p>
-            <p>
+            <p class="lead">
                 You can either choose submit the text or the URL of the article you
                 want to get tags.
             </p>
@@ -106,7 +80,7 @@
                                              max-rows="20"
                                              maxlength="5000"
                                              :state="isValidText"
-                                             placeholder="The length of the text should be between 10 - 5000 chars"
+                                             placeholder="The length of the text should be between 5 - 1000 tokens"
                                              v-model="form.description"
                                              show-word-limit>
                             </b-form-textarea>
@@ -251,7 +225,7 @@
                          alt=""
                          width="24"
                          height="24">
-                    <small class="d-block mb-3 text-muted">&copy; 2017-2019</small>
+                    <small class="d-block mb-3 text-muted">&copy; 2016-2020</small>
                 </div>
                 <!-- <div class="col-6 col-md">
                     <h5>Features</h5>
@@ -495,6 +469,7 @@
     <style>
         #app {
             text-align: center;
+            /* font-size: 18px; */
         }
 
         .item {

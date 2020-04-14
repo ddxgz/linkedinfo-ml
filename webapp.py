@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 
 # import numpy as np
-# import pandas as pd
+import pandas as pd
 # from flask import Flask, request
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -445,14 +445,14 @@ async def home():
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
 #     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-# TAGS_MODEL = TagsTextModelV3(
-#     modelfile=MODEL_FILE)
-# TAGS_MAP = get_tags_map()
-# TAGS_LIST = get_tags_list()
+TAGS_MODEL = TagsTextModelV3(
+    modelfile=MODEL_FILE)
+TAGS_MAP = get_tags_map()
+TAGS_LIST = get_tags_list()
 
-TAGS_MODEL = TagsTestModel()
-TAGS_MAP = {}
-TAGS_LIST = []
+# TAGS_MODEL = TagsTestModel()
+# TAGS_MAP = {}
+# TAGS_LIST = []
 
 if __name__ == '__main__':
     # use gevent wsgi server
