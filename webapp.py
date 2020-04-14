@@ -6,23 +6,25 @@ import json
 import uuid
 from datetime import datetime
 
-import numpy as np
-import pandas as pd
-# from flask import Flask, request, send_from_directory
+# import numpy as np
+# import pandas as pd
+# from flask import Flask, request
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.middleware.wsgi import WSGIMiddleware
 from pydantic import BaseModel
 import requests
 import joblib
-import torch
-from transformers import AutoTokenizer, AutoModel
-import nltk
+# import torch
+# from transformers import AutoTokenizer, AutoModel
+# import nltk
 # from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 from typing import List, Tuple, Optional
 
-from mltb.mltb.bert import download_once_pretrained_transformers
+# from mltb.mltb.bert import download_once_pretrained_transformers
 import extractor
-from dataset import LAN_ENCODING
+# from dataset import LAN_ENCODING
+from dataapp import data_app, MOUNT_PATH
 
 
 # app = Flask('ML-prediction-service')
@@ -30,6 +32,7 @@ from dataset import LAN_ENCODING
 # app.debug = False
 # wsgiapp = app.wsgi_app
 app = FastAPI()
+app.mount(MOUNT_PATH, WSGIMiddleware(data_app.server))
 
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
@@ -129,7 +132,8 @@ class TagsTextModelV2(PredictModel):
     def predict(self, text):
         list_len = []
         for i in text:
-            list_len.append(len(nltk.word_tokenize(i)))
+            list_len.append(len(self.tokenizer.tokenize(i)))
+            # list_len.append(len(nltk.word_tokenize(i)))
 
         max_length = max(list_len)
         if max_length > 512:
@@ -226,7 +230,8 @@ def append_map_tags(tags: List[str], info: dict) -> List[str]:
         text = f"{info['title']}. {text}"
 
     # print(text)
-    toks = nltk.word_tokenize(text)
+    # toks = nltk.word_tokenize(text)
+    toks = text.split(' ,.!?')
     if len(toks) > 20:
         toks = toks[:20]
 
@@ -338,7 +343,8 @@ def check_valid_request(info: dict, by_url: bool = False, only_model: bool = Fal
         if infourl is None:
             return False, 'URL missing in post data.'
     else:
-        toks = nltk.word_tokenize(info['description'])
+        toks = info['description'].split(' ')
+        # toks = nltk.word_tokenize(info['description'])
         if len(toks) < 5:
             return False, 'Too short text for prediction.'
     return True, ''
@@ -439,11 +445,14 @@ async def home():
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
 #     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-TAGS_MODEL = TagsTextModelV3(
-    modelfile=MODEL_FILE)
-# TAGS_MODEL = TagsTestModel()
-TAGS_MAP = get_tags_map()
-TAGS_LIST = get_tags_list()
+# TAGS_MODEL = TagsTextModelV3(
+#     modelfile=MODEL_FILE)
+# TAGS_MAP = get_tags_map()
+# TAGS_LIST = get_tags_list()
+
+TAGS_MODEL = TagsTestModel()
+TAGS_MAP = {}
+TAGS_LIST = []
 
 if __name__ == '__main__':
     # use gevent wsgi server

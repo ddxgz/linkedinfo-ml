@@ -65,7 +65,7 @@
             <a class="p-2 text-dark"
                href="#">Tag Prediction</a>
             <a class="p-2 text-dark"
-               href="#">Data</a>
+               href="/data">Data</a>
             <a class="p-2 text-dark"
                href="https://www.linkedinfo.co/about">About</a>
         </nav>
@@ -224,8 +224,10 @@
                 </b-alert> -->
             <p></p>
             <b-alert :show="isFailed"
+                     variant="danger"
                      center
-                     variant="danger">
+                     dismissible
+                     fade>
                 <h5 class="alert-heading">Prediction failed! </h5>
                 <p>Please try again later, or see the error message: {{errMsg}}</p>
             </b-alert>
@@ -238,6 +240,8 @@
                 Submit too many, come again next time please!
             </b-alert>
         </div>
+
+        <!-- <iframe src="/data/" width=700 height=900 align="center"></iframe> -->
 
         <footer class="pt-4 my-md-5 pt-md-5 border-top">
             <div class="row">
@@ -276,7 +280,7 @@
                         <li><a class="text-muted"
                                href="https://www.linkedinfo.co/tags">Tags</a></li>
                         <li><a class="text-muted"
-                               href="#">Data</a></li>
+                               href="/data">Data</a></li>
                         <li><a class="text-muted"
                                href="https://www.linkedinfo.co/about">About</a></li>
                     </ul>

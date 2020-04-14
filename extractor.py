@@ -16,6 +16,7 @@ import requests
 import html2text
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from fake_useragent import UserAgent
 import pysnooper
 
 
@@ -399,6 +400,7 @@ def extract_info_towardsdatascience(source: str) -> dict:
     return info
 
 
+# TODO In the first couple of nodes, if the len of text in a node is very short, then drop
 def extract_bs4(source: str) -> str:
     soup = BeautifulSoup(source, 'html.parser')
     if soup.body.header:
@@ -544,6 +546,7 @@ def _retrieve_info_fulltext(info, target_dir='data/fulltext',
             logger.info(f'Failed to retrieve html from {info["url"]}')
             tmp = ''
         else:
+            # TODO if should keep forcing utf-8?
             res.encoding = 'utf-8'
             tmp = res.text
         with open(cache, 'w') as f:
@@ -594,8 +597,6 @@ def get_html_from_url(infourl: str, force_download: bool = False,
         return tmp
 
     try:
-        from fake_useragent import UserAgent
-
         ua = UserAgent()
         headers = {'User-Agent': ua.random}
         res = requests.get(infourl, headers=headers)
