@@ -12,9 +12,22 @@ import dataset
 
 MOUNT_PATH = '/data/'
 
+external_stylesheets = [
+    {
+        'href': "//unpkg.com/bootstrap/dist/css/bootstrap.min.css",
+        'rel': 'stylesheet',
+        'crossorigin': 'anonymous'
+    },
+    {
+        'href': "//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css",
+        'rel': 'stylesheet',
+        'crossorigin': 'anonymous'
+    }
+]
 
 data_app = dash.Dash(__name__, requests_pathname_prefix=MOUNT_PATH,
-                    meta_tags=[{"name": "viewport", "content": "width=device-width"}])
+                     external_stylesheets=external_stylesheets,
+                     meta_tags=[{"name": "viewport", "content": "width=device-width"}])
 
 colors = {
     'background': '#444444',
@@ -23,6 +36,8 @@ colors = {
 
 style = {'font-size': '18px',
          'text-align': 'center',
+         'padding-top': '40px',
+         'padding-bottom': '40px',
          'columnCount': 1
          }
 
@@ -49,7 +64,7 @@ def lan_fig(ds) -> dcc.Graph:
     return dcc.Graph(figure=fig_lan)
 
 
-def tags_rank_fig(ds, top: int=20) -> dcc.Graph:
+def tags_rank_fig(ds, top: int = 20) -> dcc.Graph:
     c = Counter([tag for tags in ds.target_decoded for tag in tags])
 
     dfc = pd.DataFrame.from_dict(c, orient='index', columns=['count']).sort_values(
@@ -75,14 +90,14 @@ def tags_rank_fig(ds, top: int=20) -> dcc.Graph:
 data_app.title = 'Data of LinkedInfo.co'
 data_app.layout = html.Div(style=style, children=[
     dcc.Markdown(children=page_description()),
-    lan_fig(ds),
-    html.H1(children=f'Number of Tags: {ds.target.shape[1]}',
+    html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
             style={
                 'textAlign': 'center',
                 'color': colors['text']
             }),
     # html.Label(f'Here are the top {top_tags} tags'),
     tags_rank_fig(ds, top_tags),
+    lan_fig(ds),
 ])
 
 if __name__ == '__main__':
