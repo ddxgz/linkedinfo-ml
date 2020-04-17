@@ -23,11 +23,10 @@ from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncod
 from sklearn.model_selection import train_test_split
 import nltk
 from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
-import pysnooper
+# import pysnooper
 from typing import List, Callable
 
 import extractor
-from mltb.mltb import nlp as mnlp
 
 
 nltk.download('punkt')
@@ -83,8 +82,6 @@ def clean_text(text):
 
 
 def text_token_cat(rec):
-    from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
-
     d = TreebankWordDetokenizer()
     toks = nltk.word_tokenize(rec)
     return d.detokenize(toks)
@@ -184,6 +181,7 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
     crop_ratio : How much ratio of the text to be raondomly cropped from head or
     tail. It actually crops out about 1/ratio of the text.
     """
+    from mltb.mltb import nlp as mnlp
 
     if 'random_state' in kwargs.keys():
         random_state = kwargs.pop('random_state')
@@ -199,7 +197,7 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
         text_aug_method = aug_method
     else:
         text_aug_method = partial(
-           mnlp.text_random_crop, crop_by='word', crop_ratio=crop_ratio)
+            mnlp.text_random_crop, crop_by='word', crop_ratio=crop_ratio)
     # features.iloc[:len_ori][col] = features.iloc[:len_ori][col].apply(
     #     text_token_cat)
     # features.iloc[len_ori:][col] = features.iloc[len_ori:][col].apply(
@@ -211,6 +209,15 @@ def augmented_samples(features, labels, col: str = 'description', level: int = 0
 
     return features, labels
 
+
+def tag_terms(ds):
+    tag_terms = []
+    for tag in ds.target_names:
+        if '-' in tag:
+            tag_terms.extend(tag.split('-'))
+        else:
+            tag_terms.append(tag)
+    return tag_terms
 
 def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
