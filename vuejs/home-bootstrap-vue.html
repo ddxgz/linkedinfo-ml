@@ -10,7 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <!-- Load required Bootstrap and BootstrapVue CSS -->
-    <link rel="shortcut icon" href="https://www.linkedinfo.co/static/images/linkicon.png"/>
+    <link rel="shortcut icon"
+          href="https://www.linkedinfo.co/static/images/linkicon.png" />
     <link type="text/css"
           rel="stylesheet"
           href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
@@ -124,8 +125,8 @@
                  align="center">
                 <b-card class="box-card"
                         align="center">
-                    <b-card-title>The most possible tag is: </b-card-title>
-                    <div>
+                    <div v-if="info.tags.length > 0">
+                        <b-card-title>The most possible tag is: </b-card-title>
                         <h5>
                             <b-badge v-for="item in info.tags"
                                      variant="secondary"
@@ -136,6 +137,13 @@
                             </b-badge>
                         </h5>
                         <p>Click on a tag to find more</p>
+                    </div>
+                    <div v-else>
+                        <b-card-title>No tags could be provided</b-card-title>
+                        You may try to
+                        give more text
+                    </div>
+                    <div>
                         <p></p>
                         <p></p>
                         <h5>Don't feel right with the tags?</h5>
