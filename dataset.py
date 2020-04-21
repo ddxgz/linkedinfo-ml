@@ -215,9 +215,17 @@ def tag_terms(ds):
     for tag in ds.target_names:
         if '-' in tag:
             tag_terms.extend(tag.split('-'))
+        elif '.' in tag:
+            terms = tag.split('.')
+            comb = ''.join(terms)
+            terms.append(comb)
+            tag_terms.extend(terms)
         else:
             tag_terms.append(tag)
+    if '' in tag_terms:
+        tag_terms.remove('')
     return tag_terms
+
 
 def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
@@ -310,6 +318,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
         if require_fulltext:
             data_lst.append({'title': info['title'],
                              'language': info['language'],
+                             'description': info['description'],
                              'fulltext': info['fulltext']})
         elif require_partial_text:
             data_lst.append({'title': info['title'],
