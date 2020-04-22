@@ -4,8 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 
-import dataset
-
 
 def tags_per_article(ds) -> go.Figure:
     num_tags_lst = [len(tags) for tags in ds.target_decoded]
@@ -52,9 +50,49 @@ def tags_rank_fig(ds, top: int = 20) -> go.Figure:
     fig_Y = px.bar(dfc, x=dfc.index, y='Portion',
                    #    text='count',
                    labels={'Rank': 'Rank',
-                           'x': 'Tags'},
+                           'x': 'Tag'},
                    hover_data=['Rank'],
                    title=f'Top {top} Appearance of Tags')
+    # fig_Y.update_traces(texttemplate='%{text}')
+    fig_Y.update_yaxes(showticklabels=False)
+    fig_Y.update_layout(title_x=0.5)
+    return fig_Y
+
+
+def creators_rank_fig(ds, top: int = 20) -> go.Figure:
+    c = Counter([tag for tags in ds.creators_per_info for tag in tags])
+
+    dfc = pd.DataFrame.from_dict(c, orient='index', columns=['count']).sort_values(
+        by='count', ascending=False)[:top]
+    dfc['Rank'] = range(1, dfc.size + 1)
+    dfc['Portion'] = dfc['count'] / ds.data.shape[0]
+
+    fig_Y = px.bar(dfc, x=dfc.index, y='Portion',
+                   #    text='count',
+                   labels={'Rank': 'Rank',
+                           'x': 'Author'},
+                   hover_data=['Rank'],
+                   title=f'Top {top} Appearance of Authors')
+    # fig_Y.update_traces(texttemplate='%{text}')
+    fig_Y.update_yaxes(showticklabels=False)
+    fig_Y.update_layout(title_x=0.5)
+    return fig_Y
+
+
+def domain_rank_fig(ds, top: int = 20) -> go.Figure:
+    # c = Counter([tag for tags in ds.creators_per_info for tag in tags])
+    c = ds.data['host'].value_counts()
+
+    dfc = pd.DataFrame(c)[:20]
+    dfc['Rank'] = range(1, dfc.size + 1)
+    dfc['Portion'] = dfc['host'] / ds.data.shape[0]
+
+    fig_Y = px.bar(dfc, x=dfc.index, y='Portion',
+                   #    text='count',
+                   labels={'Rank': 'Rank',
+                           'x': 'Host'},
+                   hover_data=['Rank'],
+                   title=f'Top {top} Hosts')
     # fig_Y.update_traces(texttemplate='%{text}')
     fig_Y.update_yaxes(showticklabels=False)
     fig_Y.update_layout(title_x=0.5)
