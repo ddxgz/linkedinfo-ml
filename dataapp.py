@@ -1,10 +1,7 @@
-from collections import Counter
-
 # from flask import Flask, escape, request
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-# import pandas as pd
 
 import dataset
 import plots
@@ -41,25 +38,28 @@ style = {'font-size': '18px',
          'columnCount': 1
          }
 
-# ds_param = dict(from_batch_cache='info', lan=None,
-#                 concate_title=False,
-#                 filter_tags_threshold=0)
-# ds = dataset.ds_info_tags(**ds_param)
-ds = dataset.load_dataapp_set()
+# ds = dataset.load_dataapp_set()
+ds = None
 top_tags = 30
 top_creators = 30
 top_domains = 30
 
 
+def lazy_load():
+    # print('start to load model and data')
+    global ds
+
+    if not ds:
+        ds = dataset.load_dataapp_set()
+
+
 def page_description():
+    lazy_load()
     with open('vuejs/data-page.md') as f:
         txt = f.read()
     return txt
 
 
-# data_app.layout = html.Div(style={'backgroundColor': colors['background']},
-# children=[
-    # html.Title('Data of LinkedInfo.co'),
 data_app.title = 'Data of LinkedInfo.co'
 data_app.layout = html.Div(style=style, children=[
     dcc.Markdown(children=page_description()),
