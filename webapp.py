@@ -46,9 +46,10 @@ MLB_FILE = 'data/models/tags_textbased_pred_8_mlb.joblib.gz'
 
 
 async def lazy_load():
-    print('start to load model and data')
+    # print('start to load model and data')
     global TAGS_MODEL, TAGS_LIST, TAGS_MAP
 
+    # yield
     if not TAGS_MODEL:
         TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
     if not TAGS_LIST:
@@ -309,7 +310,7 @@ def predict_language(info: dict) -> str:
     return 'unknown_lan'
 
 
-def predict_tags(info: dict) -> List[str]:
+async def predict_tags(info: dict) -> List[str]:
     """ An info comes in as a json (dict), use
     description or fulltext (if presence) for prediction.
 
@@ -319,8 +320,12 @@ def predict_tags(info: dict) -> List[str]:
     """
     # global TAGS_MODEL
 
-    # if not TAGS_MODEL:
-    #     TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
+    if not TAGS_MODEL:
+        #     TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
+        # lazy loading models and data
+        await lazy_load()
+
+    # print('after load')
 
     if info.get('fulltext'):
         text = info['fulltext']
@@ -335,7 +340,7 @@ def predict_tags(info: dict) -> List[str]:
     return predicted[0]
 
 
-def predict_tags_by_url(info: dict) -> List[str]:
+async def predict_tags_by_url(info: dict) -> List[str]:
     """ An info comes in as a json (dict), use the url sent in to extract text
      for prediction.
 
@@ -359,7 +364,7 @@ def predict_tags_by_url(info: dict) -> List[str]:
     except TypeError:
         raise ValueError("URL is wrong or not fetchable")
 
-    return predict_tags(info)
+    return await predict_tags(info)
 
 
 def check_valid_request(info: dict, by_url: bool = False, only_model: bool = False) -> Tuple[bool, str]:
@@ -444,9 +449,9 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
 
     try:
         if by_url:
-            tags_pred = predict_tags_by_url(info.dict())
+            tags_pred = await predict_tags_by_url(info.dict())
         else:
-            tags_pred = predict_tags(info.dict())
+            tags_pred = await predict_tags(info.dict())
     except KeyError as e:
         raise HTTPException(status_code=400,
                             detail=f"Data key missing: {e}")
@@ -467,8 +472,6 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     "content": {"text/html": {}},
     "description": "Return the home page of the app."}})
 async def home():
-    # lazy loading models and data
-    await lazy_load()
     return FileResponse('vuejs/home-bootstrap-vue.html', media_type='text/html')
 
 
