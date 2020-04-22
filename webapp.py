@@ -45,6 +45,18 @@ MODEL_FILE = 'data/models/tags_textbased_pred_8.joblib.gz'
 MLB_FILE = 'data/models/tags_textbased_pred_8_mlb.joblib.gz'
 
 
+async def lazy_load():
+    print('start to load model and data')
+    global TAGS_MODEL, TAGS_LIST, TAGS_MAP
+
+    if not TAGS_MODEL:
+        TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
+    if not TAGS_LIST:
+        TAGS_LIST = get_tags_list()
+    if not TAGS_MAP:
+        TAGS_MAP = get_tags_map()
+
+
 def singleton(cls, *args, **kwargs):
     instances = {}
 
@@ -219,11 +231,11 @@ def get_tags_list() -> List[dict]:
 
 
 def append_map_tags(tags: List[str], info: dict) -> List[str]:
-    global TAGS_LIST, TAGS_MAP
-    if not TAGS_LIST:
-        TAGS_LIST = get_tags_list()
-    if not TAGS_MAP:
-        TAGS_MAP = get_tags_map()
+    # global TAGS_LIST, TAGS_MAP
+    # if not TAGS_LIST:
+    #     TAGS_LIST = get_tags_list()
+    # if not TAGS_MAP:
+    #     TAGS_MAP = get_tags_map()
 
     map_tags: List[str] = []
     # print(info)
@@ -305,10 +317,10 @@ def predict_tags(info: dict) -> List[str]:
     -------
     List of str of the tagsID
     """
-    global TAGS_MODEL
+    # global TAGS_MODEL
 
-    if not TAGS_MODEL:
-        TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
+    # if not TAGS_MODEL:
+    #     TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
 
     if info.get('fulltext'):
         text = info['fulltext']
@@ -455,6 +467,8 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     "content": {"text/html": {}},
     "description": "Return the home page of the app."}})
 async def home():
+    # lazy loading models and data
+    await lazy_load()
     return FileResponse('vuejs/home-bootstrap-vue.html', media_type='text/html')
 
 
