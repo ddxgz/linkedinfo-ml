@@ -13,6 +13,8 @@ import random
 from collections import Counter
 import re
 from functools import partial
+from urllib.parse import urlparse
+import pickle
 
 import requests
 import html2text
@@ -63,6 +65,25 @@ class Dataset:
     target_names: pd.DataFrame
     target_decoded: pd.DataFrame
     mlb: MultiLabelBinarizer
+
+
+@dataclass
+class DataappSet:
+    data: pd.DataFrame
+    tags: List[str]
+    tags_per_info: List[List[str]]
+    creators_per_info: List[List[str]]
+
+    def __post_init__(self):
+        self.target_decoded = self.tags_per_info
+        self.save()
+
+    def save(self, filename='data/pickle/dataappset.pkl') -> str:
+        if not os.path.exists('data/pickle'):
+            os.makedirs('data/pickle')
+        with open(filename, 'wb')as f:
+            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+        return filename
 
 
 def clean_text(text):
@@ -346,6 +367,45 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     ds = Dataset(df_data, Y, mlb.classes_, tags_lst, mlb)
 
     return ds
+
+
+def load_dataapp_set(filename='data/pickle/dataappset.pkl'):
+    if not os.path.exists(filename):
+        return ds_dataapp()
+    with open(filename, 'rb')as f:
+        tmp = pickle.load(f)
+    return tmp
+
+
+def ds_dataapp(tag_type: str = 'tagID'):
+    infos = extractor.fetch_infos(from_batch_cache='info', fulltext=False)
+
+    tag_type = 'label'
+    data_lst = []
+    tags_lst = []
+    creators_lst = []
+
+    for info in infos['content']:
+        u = urlparse(info['url'])
+        data_lst.append({'title': info['title'],
+                         'language': info['language'],
+                         'url': info['url'],
+                         'host': u.hostname,
+                         'domain': u.netloc,
+                         })
+
+        tags_lst.append([tag[tag_type] for tag in info['tags']])
+        if not info['creators']:
+            # print(info["title"])
+            continue
+        creators_lst.append([creator['label'] for creator in info['creators']])
+    df_data = pd.DataFrame(data_lst)
+
+    mlb = MultiLabelBinarizer()
+    Y = mlb.fit_transform(tags_lst)
+    # df_tags = pd.DataFrame(tags_lst)
+    # df_creators = pd.DataFrame(creators_lst)
+    return DataappSet(df_data, mlb.classes_, tags_lst, creators_lst)
 
 
 # TODO: Deprecated
