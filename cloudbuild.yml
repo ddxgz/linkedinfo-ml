@@ -15,7 +15,7 @@ steps:
     - '--image'
     - 'gcr.io/data-science-258408/linkedinfo-ml-model'
     - '--memory'
-    - '1024'
+    - '2048'
     - '--port'
     - '80'
     - '--allow-unauthenticated'
