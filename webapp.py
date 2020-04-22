@@ -22,7 +22,6 @@ import joblib
 from typing import List, Tuple, Optional
 
 # from mltb.mltb.bert import download_once_pretrained_transformers
-import extractor
 # from dataset import LAN_ENCODING
 from dataapp import data_app, MOUNT_PATH
 
@@ -82,6 +81,7 @@ class TagsTestModel(PredictModel):
         pass
 
     def predict(self, text):
+        # return [[]]
         return [['test-tags', 'machine-learning', 'python']]
 
 
@@ -219,6 +219,12 @@ def get_tags_list() -> List[dict]:
 
 
 def append_map_tags(tags: List[str], info: dict) -> List[str]:
+    global TAGS_LIST, TAGS_MAP
+    if not TAGS_LIST:
+        TAGS_LIST = get_tags_list()
+    if not TAGS_MAP:
+        TAGS_MAP = get_tags_map()
+
     map_tags: List[str] = []
     # print(info)
     if info.get('fulltext'):
@@ -299,6 +305,11 @@ def predict_tags(info: dict) -> List[str]:
     -------
     List of str of the tagsID
     """
+    global TAGS_MODEL
+
+    if not TAGS_MODEL:
+        TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
+
     if info.get('fulltext'):
         text = info['fulltext']
     else:
@@ -320,6 +331,8 @@ def predict_tags_by_url(info: dict) -> List[str]:
     -------
     List of str of the tagID
     """
+    import extractor
+
     # if 'url' in info.keys():
     infourl = info['url']
 
@@ -409,6 +422,8 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     # if request.method == 'POST':
     #     info = request.get_json()
 
+    # print('-------------- before --------------')
+    # print(TAGS_MODEL.__class__.__name__)
     # if multiple url args with the same key, only the 1st will be returned
     # by_url = request.args.get('by_url', None)
     valid_req, msg = check_valid_request(info.dict(), by_url, only_model)
@@ -431,6 +446,8 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
 
     resp = PredTags()
     resp.tags = tags_pred
+
+    # print(TAGS_MODEL.__class__.__name__)
     return resp
 
 
@@ -445,20 +462,26 @@ async def home():
 # TAGS_MODEL = TagsTextModel(
 #     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
 #     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-TAGS_MODEL = TagsTextModelV3(
-    modelfile=MODEL_FILE)
-TAGS_MAP = get_tags_map()
-TAGS_LIST = get_tags_list()
+# TAGS_MODEL = TagsTextModelV3(
+#     modelfile=MODEL_FILE)
+# TAGS_MAP = get_tags_map()
+# TAGS_LIST = get_tags_list()
 
+TAGS_MODEL = None
 # TAGS_MODEL = TagsTestModel()
-# TAGS_MAP = {}
-# TAGS_LIST = []
+
+TAGS_MAP = {}
+TAGS_LIST = []
 
 if __name__ == '__main__':
     # use gevent wsgi server
     # httpserver = Geventwsgiserver(('0.0.0.0', 5000), wsgiapp)
     # httpserver.serve_forever()
-    pass
+
+    import uvicorn
+
+    uvicorn.run('webapp:app', host="127.0.0.1", port=5000,
+                reload=True, log_level="debug")
 
     # with open('data/cache/infos_80_90.json', 'r') as f:
     #     infos = json.load(f)
