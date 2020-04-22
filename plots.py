@@ -83,7 +83,7 @@ def domain_rank_fig(ds, top: int = 20) -> go.Figure:
     # c = Counter([tag for tags in ds.creators_per_info for tag in tags])
     c = ds.data['host'].value_counts()
 
-    dfc = pd.DataFrame(c)[:20]
+    dfc = pd.DataFrame(c)[:top]
     dfc['Rank'] = range(1, dfc.size + 1)
     dfc['Portion'] = dfc['host'] / ds.data.shape[0]
 

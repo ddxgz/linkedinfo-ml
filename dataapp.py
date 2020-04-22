@@ -49,6 +49,7 @@ style = {'font-size': '18px',
 ds = dataset.load_dataapp_set()
 top_tags = 30
 top_creators = 30
+top_domains = 30
 
 
 def page_description():
@@ -74,7 +75,7 @@ data_app.layout = html.Div(style=style, children=[
     dcc.Graph(figure=plots.tags_rank_fig(ds, top_tags)),
     dcc.Graph(figure=plots.tags_per_article(ds)),
     dcc.Graph(figure=plots.creators_rank_fig(ds, top_creators)),
-    dcc.Graph(figure=plots.domain_rank_fig(ds, top_creators)),
+    dcc.Graph(figure=plots.domain_rank_fig(ds, top_domains)),
 ])
 
 if __name__ == '__main__':
