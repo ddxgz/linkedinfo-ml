@@ -17,7 +17,7 @@ import html2text
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from fake_useragent import UserAgent
-import pysnooper
+# import pysnooper
 
 
 logger = logging.getLogger('info')

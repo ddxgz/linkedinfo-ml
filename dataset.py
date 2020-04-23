@@ -23,15 +23,19 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
-import nltk
-from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
+# import nltk
+# from nltk.tokenize.treebank import TreebankWordTokenizer,
+# TreebankWordDetokenizer
+import spacy
 # import pysnooper
 from typing import List, Callable
 
 import extractor
 
 
-nltk.download('punkt')
+# nltk.download('punkt')
+nlp = spacy.load('en_core_web_sm')
+
 
 logger = logging.getLogger('dataset')
 # logger.setLevel(logging.In)
@@ -87,25 +91,29 @@ class DataappSet:
 
 
 def clean_text(text):
+    text = text.strip()
     text = text.replace('\\n', '')
     text = text.replace('\\', '')
     # text = text.replace('\t', '')
     # text = re.sub('\[(.*?)\]','',text) #removes [this one]
     text = re.sub('(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?\s',
                   ' __url__ ', text)  # remove urls
+    text = text.replace("&amp;", "and").replace(
+        "&gt;", ">").replace("&lt;", "<")
     # text = re.sub('\'','',text)
     # text = re.sub(r'\d+', ' __number__ ', text) #replaces numbers
     # text = re.sub('\W', ' ', text)
     # text = re.sub(' +', ' ', text)
+    text = text.replace('\r', '')
     text = text.replace('\t', '')
     text = text.replace('\n', '')
     return text
 
 
-def text_token_cat(rec):
-    d = TreebankWordDetokenizer()
-    toks = nltk.word_tokenize(rec)
-    return d.detokenize(toks)
+# def text_token_cat(rec):
+#     d = TreebankWordDetokenizer()
+#     toks = nltk.word_tokenize(rec)
+#     return d.detokenize(toks)
 
 
 # TODO
@@ -169,15 +177,18 @@ def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0
                                   axis=0)
 
     def text_random_crop(rec):
-        sents = nltk.word_tokenize(rec)
+        # sents = nltk.word_tokenize(rec)
+
         # sents = nltk.sent_tokenize(rec)
+        sents = nlp(rec)
         size = len(sents)
         chop_size = size // 10
         chop_offset = random.randint(0, chop_size)
         sents_chop = sents[chop_offset:size - chop_offset - 1]
 
         # return rec['fulltext'][100:]
-        return ' '.join(sents_chop)
+        # return ' '.join(sents_chop)
+        return sents_chop.text
 
     train_features.iloc[len_ori:][col] = train_features.iloc[len_ori:][col].apply(
         text_random_crop)
@@ -317,7 +328,8 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
             if remove_code:
                 info['fulltext'] = remove_code_sec(info['fulltext'])
 
-        info['description'] = text_token_cat(info['description'])
+        # info['description'] = text_token_cat(info['description'])
+        info['description'] = clean_text(info['description'])
         if require_fulltext or require_partial_text:
             info['fulltext'] = clean_text(info['fulltext'])
 
