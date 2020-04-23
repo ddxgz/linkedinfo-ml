@@ -310,6 +310,9 @@
                     nameState: null,
                 }
             },
+            mounted: function () {
+                this.reqModelInit();
+            },
             computed: {
                 isByUrl() {
                     // return this.activeTab === 'byUrl';
@@ -339,9 +342,6 @@
                 isExceeded() {
                     return this.currentStatus === STATUS_EXCEEDED;
                 }
-            },
-            mounted: function () {
-                this.reqModelInit();
             },
             methods: {
                 reqModelInit() {

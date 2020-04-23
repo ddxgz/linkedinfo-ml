@@ -1,27 +1,18 @@
 """Web service for serving prediction requests based on trained models"""
 
-# from abc import ABC, abstractmethod
 import os
 import json
 import uuid
 from datetime import datetime
 
-# import numpy as np
-# import pandas as pd
 # from flask import Flask, request
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.wsgi import WSGIMiddleware
 from pydantic import BaseModel
 import requests
-# import joblib
-# import torch
-# from transformers import AutoTokenizer, AutoModel
-# import nltk
-# from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 from typing import List, Tuple, Optional
 
-# from mltb.mltb.bert import download_once_pretrained_transformers
 # from dataset import LAN_ENCODING
 import predictor
 from dataapp import data_app, MOUNT_PATH
@@ -36,6 +27,7 @@ app.mount(MOUNT_PATH, WSGIMiddleware(data_app.server))
 
 
 TAG_PRED = predictor.get_tag_predictor(
+    init=False,
     # test_model=True
 )
 
@@ -200,13 +192,6 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     `url`, the requesting url should include parameter `by_url=[True, true, 1,
     on, yes]`.
     """
-    # if request.method == 'POST':
-    #     info = request.get_json()
-
-    # print('-------------- before --------------')
-    # print(TAGS_MODEL.__class__.__name__)
-    # if multiple url args with the same key, only the 1st will be returned
-    # by_url = request.args.get('by_url', None)
     valid_req, msg = check_valid_request(info.dict(), by_url, only_model)
     if not valid_req:
         raise HTTPException(status_code=400, detail=f'Value error: {msg}')
@@ -256,32 +241,8 @@ async def home():
     return FileResponse('vuejs/home-bootstrap-vue.html', media_type='text/html')
 
 
-# LAN_MODEL = LanModel(modelfile='data/models/lan_pred_1.joblib.gz')
-# TAGS_MODEL = TagsTextModel(
-#     modelfile='data/models/tags_textbased_pred_5.joblib.gz',
-#     mlb_fiile='data/models/tags_textbased_pred_5_mlb.joblib.gz')
-# TAGS_MODEL = TagsTextModelV3(
-#     modelfile=MODEL_FILE)
-# TAGS_MAP = get_tags_map()
-# TAGS_LIST = get_tags_list()
-
-# TAGS_MODEL = None
-# # TAGS_MODEL = TagsTestModel()
-
-# TAGS_MAP = {}
-# TAGS_LIST = []
-
 if __name__ == '__main__':
-    # use gevent wsgi server
-    # httpserver = Geventwsgiserver(('0.0.0.0', 5000), wsgiapp)
-    # httpserver.serve_forever()
-
     import uvicorn
 
     uvicorn.run('webapp:app', host="127.0.0.1", port=5000,
                 reload=True, log_level="debug")
-
-    # with open('data/cache/infos_80_90.json', 'r') as f:
-    #     infos = json.load(f)
-    #     for info in infos['content']:
-    #         print(predict_language(lan_model, info))

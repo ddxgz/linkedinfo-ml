@@ -3,7 +3,6 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
-import dataset
 import plots
 
 
@@ -47,6 +46,8 @@ top_domains = 30
 
 def lazy_load():
     # print('start to load model and data')
+    import dataset
+
     global ds
 
     if not ds:
