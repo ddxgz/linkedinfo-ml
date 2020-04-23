@@ -237,6 +237,18 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     return resp
 
 
+class ModelInit(BaseModel):
+    model_name: str = 'all'
+
+
+@app.put('/predictions/init')
+async def init_model(data: ModelInit):
+    """Initializa the prediction model."""
+    if not TAG_PRED.initialized:
+        TAG_PRED.init()
+    return 'Model initialized.'
+
+
 @app.get('/', responses={200: {
     "content": {"text/html": {}},
     "description": "Return the home page of the app."}})
