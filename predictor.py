@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 # import requests
 import joblib
+from typing import List, Tuple, Optional
 
 import dataset
 
@@ -55,7 +56,7 @@ class TagsTestModel(PredictModel):
 
     def predict(self, text):
         # return [[]]
-        return [['test-tags', 'machine-learning', 'python']]
+        return [['test-tags', 'python']]
 
 
 @singleton
@@ -161,6 +162,45 @@ class TagsTextModelV3(PredictModel):
         return pred_transformed
 
 
+def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
+    # if not TAG_PRED.initialized:
+    #     TAG_PRED.init()
+
+    map_tags: List[str] = []
+
+    # print(text)
+    # toks = nltk.word_tokenize(text)
+    toks = text.split(' ,.!?')
+    if len(toks) > 20:
+        toks = toks[:20]
+
+    # print(toks)
+
+    # d = TreebankWordDetokenizer()
+    # text = d.detokenize(toks).lower()
+
+    # print(text)
+    # for tag in TAGS_LIST:
+    for tag in predictor.tag_list:
+        if tag['label'] in toks:
+            map_tags.append(tag['tagID'])
+        if len(tag['label']) > 9:
+            if tag['label'] in text:
+                map_tags.append(tag['tagID'])
+
+    # for k, v in TAGS_MAP.items():
+    for k, v in predictor.tags_map.items():
+        if k in text:
+            map_tags.append(v)
+
+    # print(tags)
+    # print(map_tags)
+    if map_tags:
+        tags = list(tags) + map_tags
+
+    return list(set(tags))
+
+
 @singleton
 class TagPredictor(object):
     def __init__(self, init_now: bool = False, test_model: bool = False):
@@ -172,20 +212,63 @@ class TagPredictor(object):
             self.init()
 
     def init(self):
+        import spacy
+        from spacy.matcher import PhraseMatcher
+
         if self.test_model:
             print('loading test model...')
             self.model = TagsTestModel()
-            self.tag_list = []
-            self.tags_map = {}
+            self.tag_list = [{'tagID': 'python', 'label': 'Python'},
+                             {'tagID': 'machine-learning', 'label': 'Machine Learning'}]
+            self.tags_map = {"ML": "machine-learning"}
+            # self.tag_list = dataset.get_tags_list()
+            # self.tags_map = dataset.get_tags_map()
+
+            from spacy.language import Language
+            self.nlp = Language()
         else:
             self.model = TagsTextModelV3(modelfile=MODEL_FILE)
             self.tag_list = dataset.get_tags_list()
             self.tags_map = dataset.get_tags_map()
 
+            self.nlp = spacy.load('en_core_web_sm')
+
+        for pair in self.tag_list:
+            self.tags_map[pair['label']] = pair['tagID']
+
+        matcher = PhraseMatcher(self.nlp.vocab, max_length=3)
+
+        # for tag in self.tag_list:
+        #     matcher.add(tag['label'], None, self.nlp(tag['tagID']))
+        #     matcher.add(tag['label'], None, self.nlp(tag['label']))
+        for k, v in self.tags_map.items():
+            matcher.add(v, None, self.nlp(k.lower()))
+            matcher.add(v, None, self.nlp(k))
+            matcher.add(v, None, self.nlp(v))
+
+        self.matcher = matcher
+
         self.initialized = True
 
-    def predict(self, text):
-        return self.model.predict(text)
+    def predict(self, text, entity_tags: bool = False) -> List[str]:
+        tags = self.model.predict([text])[0]
+        if entity_tags:
+            # tags = append_map_tags(self, tags, text)
+            tags = self._append_map_tags(tags, text)
+        return tags
+
+    def _append_map_tags(self, tags, text) -> List[str]:
+        tags = list(tags)
+        ent_tags = self.matcher(self.nlp(text))
+        for ent in ent_tags:
+            label = self.nlp.vocab.strings[ent[0]]
+            tag = self.tags_map.get(label)
+            if tag:
+                tags.append(tag)
+            elif label in self.tags_map.values():
+                tags.append(label)
+
+        return list(set(tags))
 
 
 def get_tag_predictor(init=False, test_model=False) -> TagPredictor:

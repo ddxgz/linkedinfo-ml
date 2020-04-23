@@ -35,72 +35,9 @@ app = FastAPI()
 app.mount(MOUNT_PATH, WSGIMiddleware(data_app.server))
 
 
-TAG_PRED = predictor.get_tag_predictor()
-
-# async def lazy_load():
-#     import dataset
-#     # print('start to load model and data')
-#     global TAGS_MODEL, TAGS_LIST, TAGS_MAP
-
-#     # yield
-#     if not TAGS_MODEL:
-#         TAGS_MODEL = TagsTextModelV3(modelfile=MODEL_FILE)
-#     if not TAGS_LIST:
-#         TAGS_LIST = dataset.get_tags_list()
-#     if not TAGS_MAP:
-#         TAGS_MAP = dataset.get_tags_map()
-
-
-def append_map_tags(tags: List[str], info: dict) -> List[str]:
-    # global TAGS_LIST, TAGS_MAP
-    # if not TAGS_LIST:
-    #     TAGS_LIST = get_tags_list()
-    # if not TAGS_MAP:
-    #     TAGS_MAP = get_tags_map()
-    if not TAG_PRED.initialized:
-        TAG_PRED.init()
-
-    map_tags: List[str] = []
-    # print(info)
-    if info.get('fulltext'):
-        text = info['fulltext']
-    else:
-        text = info['description']
-
-    if info.get('title'):
-        text = f"{info['title']}. {text}"
-
-    # print(text)
-    # toks = nltk.word_tokenize(text)
-    toks = text.split(' ,.!?')
-    if len(toks) > 20:
-        toks = toks[:20]
-
-    # print(toks)
-
-    # d = TreebankWordDetokenizer()
-    # text = d.detokenize(toks).lower()
-
-    # print(text)
-    # for tag in TAGS_LIST:
-    for tag in TAG_PRED.tag_list:
-        if tag['label'] in toks:
-            map_tags.append(tag['tagID'])
-        if len(tag['label']) > 9:
-            if tag['label'] in text:
-                map_tags.append(tag['tagID'])
-
-    # for k, v in TAGS_MAP.items():
-    for k, v in TAG_PRED.tags_map.items():
-        if k in text:
-            map_tags.append(v)
-
-    # print(tags)
-    # print(map_tags)
-    if map_tags:
-        tags = list(tags) + map_tags
-
-    return list(set(tags))
+TAG_PRED = predictor.get_tag_predictor(
+    # test_model=True
+)
 
 
 def predict_language(info: dict) -> str:
@@ -134,7 +71,7 @@ def predict_language(info: dict) -> str:
     return 'unknown_lan'
 
 
-async def predict_tags(info: dict) -> List[str]:
+async def predict_tags(info: dict, entity_tags: bool = True) -> List[str]:
     """ An info comes in as a json (dict), use
     description or fulltext (if presence) for prediction.
 
@@ -162,12 +99,12 @@ async def predict_tags(info: dict) -> List[str]:
         text = f"{info['title']}. {text}"
 
     # predicted = TAGS_MODEL.predict([text])
-    predicted = TAG_PRED.predict([text])
+    predicted = TAG_PRED.predict(text, entity_tags=entity_tags)
     # inverse transform tags
-    return predicted[0]
+    return predicted
 
 
-async def predict_tags_by_url(info: dict) -> List[str]:
+async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> List[str]:
     """ An info comes in as a json (dict), use the url sent in to extract text
      for prediction.
 
@@ -191,7 +128,7 @@ async def predict_tags_by_url(info: dict) -> List[str]:
     except TypeError:
         raise ValueError("URL is wrong or not fetchable")
 
-    return await predict_tags(info)
+    return await predict_tags(info, entity_tags=entity_tags)
 
 
 def check_valid_request(info: dict, by_url: bool = False, only_model: bool = False) -> Tuple[bool, str]:
@@ -274,19 +211,24 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
     if not valid_req:
         raise HTTPException(status_code=400, detail=f'Value error: {msg}')
 
+    if only_model:
+        entity_tags = False
+    else:
+        entity_tags = True
+
     try:
         if by_url:
-            tags_pred = await predict_tags_by_url(info.dict())
+            tags_pred = await predict_tags_by_url(info.dict(), entity_tags=entity_tags)
         else:
-            tags_pred = await predict_tags(info.dict())
+            tags_pred = await predict_tags(info.dict(), entity_tags=entity_tags)
     except KeyError as e:
         raise HTTPException(status_code=400,
                             detail=f"Data key missing: {e}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f'Value error: {e}')
 
-    if not only_model:
-        tags_pred = append_map_tags(tags_pred, info.dict())
+    # if not only_model:
+    #     tags_pred = append_map_tags(tags_pred, info.dict())
 
     resp = PredTags()
     resp.tags = tags_pred
