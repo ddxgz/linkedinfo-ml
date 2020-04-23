@@ -163,17 +163,24 @@ class TagsTextModelV3(PredictModel):
 
 @singleton
 class TagPredictor(object):
-    def __init__(self, init=False):
-        self.model = None
+    def __init__(self, init_now: bool = False, test_model: bool = False):
+        self.model: PredictModel = None
         self.matcher = None
+        self.test_model = test_model
         self.initialized = False
-        if init:
+        if init_now:
             self.init()
 
     def init(self):
-        self.model = TagsTextModelV3(modelfile=MODEL_FILE)
-        self.tag_list = dataset.get_tags_list()
-        self.tags_map = dataset.get_tags_map()
+        if self.test_model:
+            print('loading test model...')
+            self.model = TagsTestModel()
+            self.tag_list = []
+            self.tags_map = {}
+        else:
+            self.model = TagsTextModelV3(modelfile=MODEL_FILE)
+            self.tag_list = dataset.get_tags_list()
+            self.tags_map = dataset.get_tags_map()
 
         self.initialized = True
 
@@ -181,5 +188,5 @@ class TagPredictor(object):
         return self.model.predict(text)
 
 
-def get_tag_predictor(init=False) -> TagPredictor:
-    return TagPredictor()
+def get_tag_predictor(init=False, test_model=False) -> TagPredictor:
+    return TagPredictor(init_now=init, test_model=test_model)
