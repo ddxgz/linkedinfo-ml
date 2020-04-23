@@ -420,6 +420,20 @@ def ds_dataapp(tag_type: str = 'tagID'):
     return DataappSet(df_data, mlb.classes_, tags_lst, creators_lst)
 
 
+
+def tags(tag_type: str = 'label'):
+    infos = extractor.fetch_infos(from_batch_cache='info', fulltext=False)
+
+    tags_lst = []
+
+    for info in infos['content']:
+
+        tags_lst.extend([tag[tag_type] for tag in info['tags']])
+
+    return tags_lst
+
+
+
 # TODO: Deprecated
 def df_tags(tag_type: str = 'tagID', content_length_threshold: int = 100, lan: str = None,
             partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
