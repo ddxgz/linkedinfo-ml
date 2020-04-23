@@ -420,7 +420,6 @@ def ds_dataapp(tag_type: str = 'tagID'):
     return DataappSet(df_data, mlb.classes_, tags_lst, creators_lst)
 
 
-
 def tags(tag_type: str = 'label'):
     infos = extractor.fetch_infos(from_batch_cache='info', fulltext=False)
 
@@ -432,6 +431,35 @@ def tags(tag_type: str = 'label'):
 
     return tags_lst
 
+
+def get_tags_map() -> dict:
+    tags = {"ML": "machine-learning"}
+    headers = {'Accept': 'application/json'}
+    resp = requests.get(
+        'https://www.linkedinfo.co/tag-map', headers=headers)
+
+    if resp.status_code == 200:
+        try:
+            tags = resp.json()
+            return tags
+        except ValueError as e:
+            return tags
+    return tags
+
+
+def get_tags_list() -> List[dict]:
+    tags = [{'tagID': 'python', 'label': 'Python'}]
+    headers = {'Accept': 'application/json'}
+    resp = requests.get(
+        'https://www.linkedinfo.co/tags', headers=headers)
+
+    if resp.status_code == 200:
+        try:
+            tags = resp.json()
+            return tags
+        except ValueError as e:
+            return tags
+    return tags
 
 
 # TODO: Deprecated
