@@ -114,18 +114,21 @@ def add_bert_vocab(ds, col_text, tfidf_param: dict,
 
 
 def fine_tune_bert(model_param: dict, train_features, train_labels, test_features,
-                   test_labels, col_text, exp_name):
+                   test_labels, col_text, exp_name, model=None):
     n_classes = model_param['n_classes']
-    batch_size: int = model_param['batch_size']
-    epochs: int = model_param['epochs']
     model_name: int = model_param['model_name']
+    epochs: int = model_param['epochs']
+    batch_size: int = model_param['batch_size']
+    lr = model_param.get('learning_rate', 5e-5)
+    eps = model_param.get('eps', 1e-8)
 
-    model = mbert.BertForSequenceMultiLabelClassification.from_pretrained(
-        model_name,
-        num_labels=n_classes,
-        output_attentions=False,
-        output_hidden_states=False,
-    )
+    if not model:
+        model = mbert.BertForSequenceMultiLabelClassification.from_pretrained(
+            model_name,
+            num_labels=n_classes,
+            output_attentions=False,
+            output_hidden_states=False,
+        )
 
     model.to(DEVICE)
 
@@ -139,7 +142,7 @@ def fine_tune_bert(model_param: dict, train_features, train_labels, test_feature
             nd in n for nd in no_decay)], "weight_decay": 0.0},
     ]
 
-    optimizer = AdamW(optimizer_grouped_parameters, lr=2e-5, eps=1e-8)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=lr, eps=eps)
 
     tokenizer, model_notuse = mbert.get_tokenizer_model(model_name)
 
