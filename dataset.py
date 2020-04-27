@@ -105,6 +105,22 @@ class DatasetStack:
     mlb: MultiLabelBinarizer
 
 
+def plot_tag_dist(targets, target_names=None):
+    targ = pd.DataFrame(targets)
+    cnts = []
+    for col in targ.columns:
+        cnts.append(targ[col].value_counts()[1])
+
+    dfc = pd.DataFrame(cnts, columns=['count'], index=target_names)
+
+    fig_Y = px.bar(dfc, x=dfc.index, y='count',
+                   text='count',
+                   labels={'count': 'Number of infos',
+                           'x': 'Tags'})
+    fig_Y.update_traces(texttemplate='%{text}')
+    fig_Y.show()
+
+
 def clean_text(text):
     text = text.strip()
     text = text.replace('\\n', '')
