@@ -28,9 +28,9 @@ from sklearn.model_selection import train_test_split
 # TreebankWordDetokenizer
 # import spacy
 # import pysnooper
-from typing import List, Callable
+from typing import List, Callable, Union
 
-import extractor
+from . import extractor
 
 
 # nltk.download('punkt')
@@ -71,10 +71,58 @@ STACKFILES = [
 @dataclass
 class Dataset:
     data: pd.DataFrame
-    target: pd.DataFrame
-    target_names: pd.DataFrame
-    target_decoded: pd.DataFrame
+    target: np.ndarray
+    target_names: np.ndarray
+    target_decoded: List[List[str]]
+    # target: pd.DataFrame
+    # target_names: pd.DataFrame
+    # target_decoded: pd.DataFrame
     mlb: MultiLabelBinarizer
+
+    def get_train_test(self, test_size: Union[float, int] = 0.3):
+        """
+        Default split method `multilearn_iterative_train_test_split` from
+        `mltb.mltb.experiment`.
+        """
+        from mltb.mltb.experiment import multilearn_iterative_train_test_split
+
+        (self.train_features, self.test_features, self.train_labels,
+         self.test_labels) = multilearn_iterative_train_test_split(
+            self.data, self.target, test_size=test_size, cols=self.data.columns)
+        # return multilearn_iterative_train_test_split(
+        #     self.data, self.target, test_size=test_size,
+        #     cols=self.data.columns)
+        return (self.train_features, self.test_features, self.train_labels,
+                self.test_labels)
+
+    def dump(self, version: str='latest'):
+        import joblib
+
+        self.datahome = 'data/linkedinfo/processed'
+        output_dir = os.path.join(self.datahome, version)
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        train_csv = os.path.join(
+            output_dir, 'train.csv')
+        self.train_features.to_csv(train_csv)
+
+        test_csv = os.path.join(
+            output_dir, 'test.csv')
+        self.test_features.to_csv(test_csv)
+
+        train_csv = os.path.join(
+            output_dir, 'train_targets.csv')
+        self.train_labels.to_csv(train_csv)
+
+        test_csv = os.path.join(
+            output_dir, 'test_targets.csv')
+        self.test_labels.to_csv(test_csv)
+
+        dump_target_mlb = os.path.join(
+            output_dir, 'mlb.joblib.gz')
+        m = joblib.dump(self.mlb, dump_target_mlb, compress=3)
 
 
 @dataclass
@@ -412,7 +460,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     return ds
 
 
-def load_dataapp_set(filename='data/pickle/dataappset.pkl'):
+def load_dataapp_set(filename='../data/pickle/dataappset.pkl'):
     if not os.path.exists(filename):
         return ds_dataapp()
     with open(filename, 'rb')as f:

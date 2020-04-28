@@ -3,7 +3,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
-import plots
+from . import plots
 
 
 MOUNT_PATH = '/data/'
@@ -46,7 +46,7 @@ top_domains = 30
 
 def lazy_load():
     # print('start to load model and data')
-    import dataset
+    from . import dataset
 
     global ds
 

@@ -14,8 +14,8 @@ import requests
 from typing import List, Tuple, Optional
 
 # from dataset import LAN_ENCODING
-import predictor
-from dataapp import data_app, MOUNT_PATH
+from . import predictor
+from .dataapp import data_app, MOUNT_PATH
 
 
 # app = Flask('ML-prediction-service')
@@ -104,7 +104,7 @@ async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> List[str]
     -------
     List of str of the tagID
     """
-    import extractor
+    from . import extractor
 
     # if 'url' in info.keys():
     infourl = info['url']
@@ -244,5 +244,5 @@ async def home():
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run('webapp:app', host="127.0.0.1", port=5000,
+    uvicorn.run('ml.webapp:app', host="127.0.0.1", port=5000,
                 reload=True, log_level="debug")

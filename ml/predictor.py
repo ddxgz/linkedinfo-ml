@@ -6,7 +6,6 @@ import pandas as pd
 import joblib
 from typing import List, Tuple, Optional
 
-import dataset
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/bert_uncased_L-2_H-128_A-2/"
@@ -201,6 +200,7 @@ def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
     return list(set(tags))
 
 
+# TODO add NER/Matcher based Predictor class as a component instead of function
 @singleton
 class TagPredictor(object):
     def __init__(self, init_now: bool = False, test_model: bool = False):
@@ -214,6 +214,8 @@ class TagPredictor(object):
     def init(self):
         import spacy
         from spacy.matcher import PhraseMatcher
+
+        from . import dataset
 
         if self.test_model:
             print('loading test model...')
@@ -246,6 +248,7 @@ class TagPredictor(object):
             matcher.add(v, None, self.nlp(k))
             matcher.add(v, None, self.nlp(v))
 
+        # print(len(matcher))
         self.matcher = matcher
 
         self.initialized = True
@@ -257,11 +260,13 @@ class TagPredictor(object):
             tags = self._append_map_tags(tags, text)
         return tags
 
-    def _append_map_tags(self, tags, text) -> List[str]:
+    def _append_map_tags(self, tags, text, min_label_len: int = 9) -> List[str]:
         tags = list(tags)
         ent_tags = self.matcher(self.nlp(text))
         for ent in ent_tags:
             label = self.nlp.vocab.strings[ent[0]]
+            if len(label) < min_label_len:
+                continue
             tag = self.tags_map.get(label)
             if tag:
                 tags.append(tag)
