@@ -128,13 +128,14 @@
                     <div v-if="info.tags.length > 0">
                         <b-card-title>The most possible tags are: </b-card-title>
                         <h5>
-                            <b-badge v-for="item in info.tags"
-                                     variant="secondary"
-                                     pill
-                                     :href="'https://www.linkedinfo.co/tags/'+item"
-                                     target="_blank">
-                                {{ item }}
-                            </b-badge>
+                            <span v-for="(item, i) in info.tags">
+                                <b-badge variant="secondary"
+                                         :href="'https://www.linkedinfo.co/tags/'+item"
+                                         target="_blank">
+                                    <!-- style="margin-right: 5px;"> -->
+                                    <span>{{ item }}</span>
+                                </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
+                            </span>
                         </h5>
                         <p>Click on a tag to find more</p>
                     </div>
@@ -189,7 +190,7 @@
                      center
                      variant="success">
                 {{ successMsg}}
-            </b-alert> -->
+                                    </b-alert> -->
 
             <b-alert :show="isSaving"
                      center
