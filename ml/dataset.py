@@ -79,46 +79,53 @@ class Dataset:
     # target_decoded: pd.DataFrame
     mlb: MultiLabelBinarizer
 
+    def __post_init__(self):
+        self.dump_dir = 'data/linkedinfo/processed'
+
     def get_train_test(self, test_size: Union[float, int] = 0.3):
-        """
-        Default split method `multilearn_iterative_train_test_split` from
+        """ Default split method `multilearn_iterative_train_test_split` from
         `mltb.mltb.experiment`.
+
+        Returns:
+            train_features(pd.DataFrame)
+            test_features(pd.DataFrame)
+            train_targets(np.Array)
+            test_targets(np.Array)
         """
         from mltb.mltb.experiment import multilearn_iterative_train_test_split
 
-        (self.train_features, self.test_features, self.train_labels,
-         self.test_labels) = multilearn_iterative_train_test_split(
+        (self.train_features, self.test_features, self.train_targets,
+         self.test_targets) = multilearn_iterative_train_test_split(
             self.data, self.target, test_size=test_size, cols=self.data.columns)
         # return multilearn_iterative_train_test_split(
         #     self.data, self.target, test_size=test_size,
         #     cols=self.data.columns)
-        return (self.train_features, self.test_features, self.train_labels,
-                self.test_labels)
+        return (self.train_features, self.test_features, self.train_targets,
+                self.test_targets)
 
-    def dump(self, version: str='latest'):
+    def dump(self, version: str = 'latest'):
         import joblib
 
-        self.datahome = 'data/linkedinfo/processed'
-        output_dir = os.path.join(self.datahome, version)
+        output_dir = os.path.join(self.dump_dir, version)
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
         train_csv = os.path.join(
             output_dir, 'train.csv')
-        self.train_features.to_csv(train_csv)
+        self.train_features.to_csv(train_csv, index=False)
 
         test_csv = os.path.join(
             output_dir, 'test.csv')
-        self.test_features.to_csv(test_csv)
+        self.test_features.to_csv(test_csv, index=False)
 
-        train_csv = os.path.join(
-            output_dir, 'train_targets.csv')
-        self.train_labels.to_csv(train_csv)
+        train_targets_csv = os.path.join(
+            output_dir, 'train_targets.npy')
+        np.save(train_targets_csv, self.train_targets)
 
-        test_csv = os.path.join(
-            output_dir, 'test_targets.csv')
-        self.test_labels.to_csv(test_csv)
+        test_targets_csv = os.path.join(
+            output_dir, 'test_targets.npy')
+        np.save(test_targets_csv, self.test_targets)
 
         dump_target_mlb = os.path.join(
             output_dir, 'mlb.joblib.gz')
