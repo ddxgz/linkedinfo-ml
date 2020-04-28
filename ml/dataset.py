@@ -17,12 +17,9 @@ from urllib.parse import urlparse
 import pickle
 
 import requests
-import html2text
-from urllib.parse import urlparse
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder, OneHotEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MultiLabelBinarizer
 # import nltk
 # from nltk.tokenize.treebank import TreebankWordTokenizer,
 # TreebankWordDetokenizer
@@ -161,6 +158,8 @@ class DatasetStack:
 
 
 def plot_tag_dist(targets, target_names=None):
+    import plotly.express as px
+
     targ = pd.DataFrame(targets)
     cnts = []
     for col in targ.columns:
@@ -242,6 +241,11 @@ def filter_tags(df_data, tags_list, threshold: int = 0):
 
 
 def augmented_ds(col: str = 'description', level: int = 0, test_ratio: float = 0.3, *args, **kwargs):
+    from sklearn.model_selection import train_test_split
+    import spacy
+
+    nlp = spacy.load('en_core_web_sm')
+
     kwargs.pop('aug_level')
 
     ds = ds_info_tags(aug_level=0, *args, **kwargs)
@@ -421,7 +425,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
 
         # TODO make partial_len based on tokens
         if require_partial_text:
-            if partial_len < len(info['fulltext']):
+            if partial_len is not None and partial_len < len(info['fulltext']):
                 info['partial_text'] = info['fulltext'][:partial_len]
             else:
                 info['partial_text'] = info['fulltext']

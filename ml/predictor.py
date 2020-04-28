@@ -89,11 +89,12 @@ class TagsTextModelV2(PredictModel):
     def __init__(self, modelfile: str):
         super().__init__(modelfile)
 
+        from transformers import AutoTokenizer, AutoModel
         self.tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_BERT_WEIGHTS)
         self.feat_model = AutoModel.from_pretrained(PRETRAINED_BERT_WEIGHTS)
 
-        # ds = dataset.ds_info_tags(from_batch_cache='fulltext', content_length_threshold=100, lan='en',
-        #                           filter_tags_threshold=2, partial_len=3000, total_size=None)
+       # ds = dataset.ds_info_tags(from_batch_cache='fulltext', content_length_threshold=100, lan='en',
+       #                           filter_tags_threshold=2, partial_len=3000, total_size=None)
 
         if os.path.exists(MLB_FILE):
             mlb = joblib.load(MLB_FILE)
@@ -103,6 +104,8 @@ class TagsTextModelV2(PredictModel):
         self.mlb = mlb
 
     def predict(self, text):
+        import torch
+
         list_len = []
         for i in text:
             list_len.append(len(self.tokenizer.tokenize(i)))
@@ -204,7 +207,7 @@ def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
 @singleton
 class TagPredictor(object):
     def __init__(self, init_now: bool = False, test_model: bool = False):
-        self.model: PredictModel = None
+        self.model: PredictModel
         self.matcher = None
         self.test_model = test_model
         self.initialized = False

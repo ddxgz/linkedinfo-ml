@@ -468,8 +468,9 @@ def retrieve_infoqcn_info(referer_url: str) -> dict:
 
     info['fulltext'] = text
     info['title'] = article.get('article_title', '')
-    info['creators'] = [author['nickname'] for author in article.get('author')]
-    info['tags'] = [tag['alias'] for tag in article.get('topic')]
+    info['creators'] = [author['nickname']
+                        for author in article.get('author', [])]
+    info['tags'] = [tag['alias'] for tag in article.get('topic', [])]
 
     return info
 
