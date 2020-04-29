@@ -148,7 +148,7 @@ async def predict_tags(info: dict, entity_tags: bool = True) -> List[str]:
     return predicted
 
 
-async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> List[str]:
+async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> Tuple[List[str], dict]:
     """ An info comes in as a json (dict), use the url sent in to extract text
      for prediction.
 
@@ -172,7 +172,7 @@ async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> List[str]
     except TypeError:
         raise ValueError("URL is wrong or not fetchable")
 
-    return await predict_tags(info, entity_tags=entity_tags)
+    return await predict_tags(info, entity_tags=entity_tags), info
 
 
 def check_valid_request(info: dict, by_url: bool = False, only_model: bool = False) -> Tuple[bool, str]:
@@ -268,7 +268,7 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
 
     try:
         if by_url:
-            tags_pred = await predict_tags_by_url(info.dict(), entity_tags=entity_tags)
+            tags_pred, _ = await predict_tags_by_url(info.dict(), entity_tags=entity_tags)
         else:
             tags_pred = await predict_tags(info.dict(), entity_tags=entity_tags)
     except KeyError as e:
@@ -282,6 +282,65 @@ async def pred_tags(info: Info, by_url: bool = False, only_model: bool = False):
 
     resp = PredTags()
     resp.tags = tags_pred
+
+    # print(TAGS_MODEL.__class__.__name__)
+    return resp
+
+
+class InfoExtracted(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    fulltext: Optional[str] = None
+    url: Optional[str] = None
+    creator: Optional[str] = None
+    tags: List[str]
+    language: str
+
+
+@app.post('/detection', response_model=InfoExtracted)
+async def info_detection(info: Info, by_url: bool = False, only_model: bool = False):
+    """ Accept POST request with data in application/json. The data body should
+    contain either `description`, `fulltext` or `url`. When intend to predict by
+    `url`, the requesting url should include parameter `by_url=[True, true, 1,
+    on, yes]`.
+    """
+    valid_req, msg = check_valid_request(info.dict(), by_url, only_model)
+    if not valid_req:
+        raise HTTPException(status_code=400, detail=f'Value error: {msg}')
+
+    if only_model:
+        entity_tags = False
+    else:
+        entity_tags = True
+
+    try:
+        if by_url:
+            tags_pred, info_ext = await predict_tags_by_url(info.dict(), entity_tags=entity_tags)
+        else:
+            tags_pred = await predict_tags(info.dict(), entity_tags=entity_tags)
+            info_ext = info.dict()
+
+        lan = predict_language(info_ext)
+    except KeyError as e:
+        raise HTTPException(status_code=400,
+                            detail=f"Data key missing: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f'Value error: {e}')
+
+    # if not only_model:
+    #     tags_pred = append_map_tags(tags_pred, info.dict())
+
+    resp = InfoExtracted(tags=tags_pred, language=lan)
+    # resp.tags = tags_pred
+    # resp.language = lan
+    if info_ext.get('fulltext'):
+        resp.fulltext = info_ext.get('fulltext')
+    if info_ext.get('description'):
+        resp.description = info_ext.get('description')
+    if info_ext.get('url'):
+        resp.url = info_ext.get('url')
+    if info_ext.get('title'):
+        resp.title = info_ext.get('title')
 
     # print(TAGS_MODEL.__class__.__name__)
     return resp
