@@ -19,13 +19,14 @@ import pickle
 import requests
 import numpy as np
 import pandas as pd
+from torch.utils.data import Dataset as TorchDataset
 from sklearn.preprocessing import MultiLabelBinarizer
 # import nltk
 # from nltk.tokenize.treebank import TreebankWordTokenizer,
 # TreebankWordDetokenizer
 # import spacy
 # import pysnooper
-from typing import List, Callable, Union
+from typing import List, Callable, Union, Tuple
 
 from . import extractor
 
@@ -64,7 +65,34 @@ STACKFILES = [
     '/content/data/stackoverflow/stackoverflow-score32-25-50k.csv',
 ]
 
-# TODO: maybe change dataset to namedtuple
+
+class LinkedInfoTag(TorchDataset):
+
+    def __init__(self, features, targets, data_transforms: Tuple = tuple([None, None])):
+        self.features = features
+        self.targets = targets
+        self.target_transforms = data_transforms[0]
+        self.text_transforms = data_transforms[1]
+
+    def __len__(self):
+        return self.features.shape[0]
+
+    def __getitem__(self, index):
+        if self.target_transforms:
+            target = self.target_transforms(self.targets[index])
+        else:
+            target = self.targets[index]
+        if self.text_transforms:
+            feature = self.text_transforms(self.features[index])
+        else:
+            feature = self.features[index]
+        return feature, target
+
+    @property
+    def num_labels(self):
+        return self.targets.shape[1]
+
+
 @dataclass
 class Dataset:
     data: pd.DataFrame
@@ -100,8 +128,17 @@ class Dataset:
         return (self.train_features, self.test_features, self.train_targets,
                 self.test_targets)
 
-    def dump(self, version: str = 'latest'):
+    def dump(self, version: str = None):
+        """Dump the splited train test features and targets to files. 
+        `get_train_test()` should be called before dump.
+        """
         import joblib
+
+        if not version:
+            from datetime import datetime
+
+            timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            version = f'ver_{timestamp}'
 
         output_dir = os.path.join(self.dump_dir, version)
 
@@ -175,7 +212,7 @@ def plot_tag_dist(targets, target_names=None):
     fig_Y.show()
 
 
-def clean_text(text):
+def clean_text(text: str):
     text = text.strip()
     text = text.replace('\\n', '')
     text = text.replace('\\', '')
