@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 # import requests
 import joblib
+import cld3
 from typing import List, Tuple, Optional
 
 
@@ -206,12 +207,12 @@ def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
 # TODO add NER/Matcher based Predictor class as a component instead of function
 @singleton
 class TagPredictor(object):
-    def __init__(self, init_now: bool = False, test_model: bool = False):
+    def __init__(self, init: bool = False, test_model: bool = False):
         self.model: PredictModel
         self.matcher = None
         self.test_model = test_model
         self.initialized = False
-        if init_now:
+        if init:
             self.init()
 
     def init(self):
@@ -279,5 +280,23 @@ class TagPredictor(object):
         return list(set(tags))
 
 
+class LanPredictor(object):
+    def __init__(self, init: bool = False):
+        self.initialized = False
+        if init:
+            self.init()
+
+    def init(self):
+        self.initialized = True
+
+    def predict(self, text) -> str:
+        pred = cld3.get_language(text)
+        return pred.language
+
+
 def get_tag_predictor(init=False, test_model=False) -> TagPredictor:
-    return TagPredictor(init_now=init, test_model=test_model)
+    return TagPredictor(init=init, test_model=test_model)
+
+
+def get_lan_predictor(init=False) -> LanPredictor:
+    return LanPredictor(init=init)

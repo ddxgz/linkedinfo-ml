@@ -18,7 +18,6 @@ from . import predictor
 from .dataapp import data_app, MOUNT_PATH
 
 
-# app = Flask('ML-prediction-service')
 # app.secret_key = str(uuid.uuid4())
 # app.debug = False
 # wsgiapp = app.wsgi_app
@@ -28,7 +27,11 @@ app.mount(MOUNT_PATH, WSGIMiddleware(data_app.server))
 
 TAG_PRED = predictor.get_tag_predictor(
     init=False,
-    # test_model=True
+    test_model=True
+)
+
+LAN_PRED = predictor.get_lan_predictor(
+    init=True,
 )
 
 
@@ -36,14 +39,10 @@ def predict_language(info: dict) -> str:
     """ An info comes in as a json (dict) in the following format, use title and
     description for prediction.
     {
-            "key": "",
-            "postAt": "",
-            "modifiedAt": "",
             "title": "Achieving 100k connections per second with Elixir",
             "url": ,
             "description": "",
             "poster": "",
-            "inAggregations": [ ],
             "tags": [ ],
             "creators": [ ],
             "language": "en"
@@ -53,14 +52,60 @@ def predict_language(info: dict) -> str:
     -------
     str of the language acronym, en or cn
     """
-    text = f"{info['title']}. {info['description']}"
+    if not LAN_PRED.initialized:
+        LAN_PRED.init()
+
+    fulltext = info.get('fulltext', None)
+    if fulltext:
+        text = fulltext
+    else:
+        text = info.get('description', None)
+
+    title = info.get('title', None)
+    if not text and not title:
+        raise KeyError(
+            'fulltext, description or title is missing in post data')
+        return
+
+    if title:
+        text = f"{title}. {text}"
+
+    # text = f"{info['title']}. {info['description']}"
+    lan = LAN_PRED.predict(text)
     # predicted = LAN_MODEL.predict([text])[0]
 
     # for lan, enc in LAN_ENCODING.items():
     #     if enc == predicted:
     #         return lan
 
-    return 'unknown_lan'
+    return lan
+
+
+async def predict_lan_by_url(info: dict, entity_tags: bool = True) -> str:
+    """ An info comes in as a json (dict), use the url sent in to extract text
+     for prediction.
+
+    Returns
+    -------
+    str of the language 
+    """
+    from .dataset import extractor
+
+    # if 'url' in info.keys():
+    infourl = info['url']
+
+    if infourl is None:
+        raise KeyError('url missing in post data')
+    # print(infourl)
+    # else:
+    #     return []
+
+    try:
+        info = extractor.extract_info_from_url(infourl)
+    except TypeError:
+        raise ValueError("URL is wrong or not fetchable")
+
+    return predict_language(info)
 
 
 async def predict_tags(info: dict, entity_tags: bool = True) -> List[str]:
@@ -82,13 +127,20 @@ async def predict_tags(info: dict, entity_tags: bool = True) -> List[str]:
 
     # print('after load')
 
-    if info.get('fulltext'):
-        text = info['fulltext']
+    fulltext = info.get('fulltext', None)
+    if fulltext:
+        text = fulltext
     else:
-        text = info['description']
+        text = info.get('description', None)
 
-    if info.get('title'):
-        text = f"{info['title']}. {text}"
+    title = info.get('title', None)
+    if not text and not title:
+        raise KeyError(
+            'fulltext, description or title is missing in post data')
+        return
+
+    if title:
+        text = f"{title}. {text}"
 
     # predicted = TAGS_MODEL.predict([text])
     predicted = TAG_PRED.predict(text, entity_tags=entity_tags)
@@ -104,7 +156,7 @@ async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> List[str]
     -------
     List of str of the tagID
     """
-    from . import extractor
+    from .dataset import extractor
 
     # if 'url' in info.keys():
     infourl = info['url']
@@ -144,10 +196,23 @@ class Info(BaseModel):
 
 
 @app.post('/predictions/language')
-async def pred_lan(info: Info):
-    """Not implemented yet"""
+async def pred_lan(info: Info, by_url: bool = False):
+    """ Accept POST request with data in application/json. The data body should
+    contain either `description`, `fulltext` or `url`. When intend to predict by
+    `url`, the requesting url should include parameter `by_url=[True, true, 1,
+    on, yes]`.
+    """
     # info = request.get_json()
-    lan_pred = predict_language(info.dict())
+    try:
+        if by_url:
+            lan_pred = await predict_lan_by_url(info.dict())
+        else:
+            lan_pred = predict_language(info.dict())
+    except KeyError as e:
+        raise HTTPException(status_code=400,
+                            detail=f"Data key missing: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f'Value error: {e}')
     # resp = json.dumps({'language': lan_pred})
     return {'language': lan_pred}
 
