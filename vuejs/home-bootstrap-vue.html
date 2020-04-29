@@ -144,10 +144,19 @@
                         You may try to
                         give more text
                     </div>
+                    <div v-if="info.language">
+                        <h4>The text is in language: </h4>
+                        <h5>
+                            <b-badge variant="info">
+                                <!-- style="margin-right: 5px;"> -->
+                                <span>{{ info.language }}</span>
+                            </b-badge>
+                        </h5>
+                    </div>
                     <div>
                         <p></p>
                         <p></p>
-                        <h5>Don't feel right with the tags?</h5>
+                        <h5>Don't feel right about the tags?</h5>
                         <p>Please <b-link type="text"
                                     v-b-modal.modal-tag-suggestion>click
                                 here</b-link> to suggest
@@ -376,7 +385,8 @@
                     // console.log('submit!');
                     this.currentStatus = STATUS_SAVING;
 
-                    axios.post('/predictions/tags',
+                    axios.post('/detection',
+                        // axios.post('/predictions/tags',
                         this.form,
                         {
                             headers: { 'Content-Type': 'application/json' },

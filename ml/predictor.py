@@ -291,6 +291,7 @@ class LanPredictor(object):
 
     def predict(self, text) -> str:
         pred = cld3.get_language(text)
+        # cld3.get_frequent_languages(text, 2)
         return pred.language
 
 
