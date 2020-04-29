@@ -21,9 +21,9 @@ import torch
 import joblib
 # import matplotlib.pyplot as plt
 
-import dataset
+from ml import dataset
 import mltb
-from mltb.mltb.bert import bert_transform, download_once_pretrained_transformers, get_tokenizer_model
+from mltb.mltb.nlp.bert import bert_transform, download_once_pretrained_transformers, get_tokenizer_model
 
 # # logging.basicConfig(level=logging.INFO)
 # handler = logging.FileHandler(filename='experiment.log')
@@ -216,7 +216,7 @@ class Persistor(object):
         self.model = model
         self.model.fit(self.train_features, self.train_labels)
 
-    def persist(self, filename='tags_textbased_pred_8'):
+    def persist(self, filename='tags_textbased_pred_9'):
         dump_target = os.path.join(self.datahome, f'{filename}.joblib.gz')
         m = joblib.dump(self.model, dump_target, compress=3)
 
@@ -238,7 +238,7 @@ def model_persist_v6():
     batch_size = 128
     model_name = "./data/models/bert_mini_finetuned_tagthr_20/"
     clf = Pipeline([
-        ('bert_tran', mltb.mltb.bert.BertForSequenceClassificationTransformer(
+        ('bert_tran', mltb.mltb.nlp.bert.BertForSequenceClassificationTransformer(
             col_text, model_name, batch_size)),
         ('clf', OneVsRestClassifier(LinearSVC(penalty='l2', C=0.1, dual=True))),
     ])

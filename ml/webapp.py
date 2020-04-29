@@ -27,7 +27,7 @@ app.mount(MOUNT_PATH, WSGIMiddleware(data_app.server))
 
 TAG_PRED = predictor.get_tag_predictor(
     init=False,
-    test_model=True
+    # test_model=True
 )
 
 LAN_PRED = predictor.get_lan_predictor(

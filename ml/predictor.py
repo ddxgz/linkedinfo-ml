@@ -15,8 +15,8 @@ from typing import List, Tuple, Optional
 #     "google/bert_uncased_L-4_H-256_A-4")
 PRETRAINED_BERT_WEIGHTS = "./data/models/bert_mini_finetuned_tagthr_20/"
 
-MODEL_FILE = 'data/models/tags_textbased_pred_8.joblib.gz'
-MLB_FILE = 'data/models/tags_textbased_pred_8_mlb.joblib.gz'
+MODEL_FILE = 'data/models/tags_textbased_pred_9.joblib.gz'
+MLB_FILE = 'data/models/tags_textbased_pred_9_mlb.joblib.gz'
 
 
 def singleton(cls, *args, **kwargs):
