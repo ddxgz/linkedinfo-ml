@@ -646,6 +646,7 @@ def extract_info_from_url(infourl: str) -> dict:
 
     info['title'] = extract_title_from_html(html_doc)
     info['fulltext'] = extract_text_from_html(html_doc)[:3000]
+    info['url'] = infourl
 
     return info
 
