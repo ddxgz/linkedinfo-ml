@@ -59,7 +59,6 @@ LAN_ENCODING = {
 }
 
 
-
 class LinkedInfoTag(TorchDataset):
 
     def __init__(self, features, targets, data_transforms: Tuple = tuple([None, None])):
@@ -158,6 +157,17 @@ class Dataset:
         dump_target_mlb = os.path.join(
             output_dir, 'mlb.joblib.gz')
         m = joblib.dump(self.mlb, dump_target_mlb, compress=3)
+
+    def dump_fasttext(self, fname, only_title=True, preprocess=None, split_test=False):
+        labels = map(lambda x: [f'__label__{i}' for i in x], self.target_decoded)
+        labels = [' '.join(i) for i in labels]
+        label = pd.Series(labels).astype('string')
+
+        lines = label.str.cat(self.data['title'], sep=' ')
+        with open(fname, 'w') as f:
+            for i in lines:
+                f.writelines(i)
+                f.writelines('\n')
 
 
 @dataclass
@@ -487,6 +497,9 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     # print(df_tags)
     mlb = MultiLabelBinarizer()
     Y = mlb.fit_transform(tags_lst)
+
+    df_data.reset_index(inplace=True)
+    df_tags.reset_index(inplace=True)
 
     ds = Dataset(df_data, Y, mlb.classes_, tags_lst, mlb)
 
