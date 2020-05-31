@@ -14,7 +14,7 @@ import requests
 from typing import List, Tuple, Optional
 
 # from dataset import LAN_ENCODING
-from . import predictor
+from .models import predictor
 from .dataapp import data_app, MOUNT_PATH
 
 

@@ -1,0 +1,35 @@
+import os
+from abc import ABC, abstractmethod
+
+import joblib
+from typing import List, Tuple, Optional
+
+
+def singleton(cls, *args, **kwargs):
+    instances = {}
+
+    def _singleton(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+    return _singleton
+
+
+class PredictModel(ABC):
+    def __init__(self, modelfile: str):
+        self.model = self._load_model(modelfile)
+        super().__init__()
+
+    @abstractmethod
+    def predict(self, text):
+        raise NotImplementedError(
+            'users must define `predict` to use this base class')
+
+    def _load_model(self, modelfile: str):
+        if os.path.exists(modelfile):
+            model = joblib.load(modelfile)
+            return model
+        else:
+            cwd = os.getcwd()
+            raise FileNotFoundError(f'Model file not exists! The model should be'
+                                    'place under ./data/models/. CWD: {cwd}')

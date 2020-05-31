@@ -4,8 +4,9 @@ from abc import ABC, abstractmethod
 import pandas as pd
 # import requests
 import joblib
-import cld3
 from typing import List, Tuple, Optional
+
+from .base import singleton, PredictModel
 
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
@@ -19,36 +20,6 @@ MODEL_FILE = 'data/models/tags_textbased_pred_9.joblib.gz'
 MLB_FILE = 'data/models/tags_textbased_pred_9_mlb.joblib.gz'
 
 
-def singleton(cls, *args, **kwargs):
-    instances = {}
-
-    def _singleton(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-    return _singleton
-
-
-class PredictModel(ABC):
-    def __init__(self, modelfile: str):
-        self.model = self._load_model(modelfile)
-        super().__init__()
-
-    @abstractmethod
-    def predict(self, text):
-        raise NotImplementedError(
-            'users must define `predict` to use this base class')
-
-    def _load_model(self, modelfile: str):
-        if os.path.exists(modelfile):
-            model = joblib.load(modelfile)
-            return model
-        else:
-            cwd = os.getcwd()
-            raise FileNotFoundError(f'Model file not exists! The model should be'
-                                    'place under ./data/models/. CWD: {cwd}')
-
-
 @singleton
 class TagsTestModel(PredictModel):
     def __init__(self):
@@ -57,13 +28,6 @@ class TagsTestModel(PredictModel):
     def predict(self, text):
         # return [[]]
         return [['test-tags', 'python']]
-
-
-@singleton
-class LanModel(PredictModel):
-
-    def predict(self, text):
-        return self.model.predict(text)
 
 
 @singleton
@@ -219,7 +183,7 @@ class TagPredictor(object):
         import spacy
         from spacy.matcher import PhraseMatcher
 
-        from . import dataset
+        from .. import dataset
 
         if self.test_model:
             print('loading test model...')
@@ -278,26 +242,3 @@ class TagPredictor(object):
                 tags.append(label)
 
         return list(set(tags))
-
-
-class LanPredictor(object):
-    def __init__(self, init: bool = False):
-        self.initialized = False
-        if init:
-            self.init()
-
-    def init(self):
-        self.initialized = True
-
-    def predict(self, text) -> str:
-        pred = cld3.get_language(text)
-        # cld3.get_frequent_languages(text, 2)
-        return pred.language
-
-
-def get_tag_predictor(init=False, test_model=False) -> TagPredictor:
-    return TagPredictor(init=init, test_model=test_model)
-
-
-def get_lan_predictor(init=False) -> LanPredictor:
-    return LanPredictor(init=init)
