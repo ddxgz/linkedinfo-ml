@@ -11,8 +11,8 @@ from ml import dataset
 
 
 class Tester(unittest.TestCase):
-    # def tearDown(self):
-    #     os.remove('tests/tmp')
+    def tearDown(self):
+        pass
 
     def test_dataset_dump(self):
         col_text = 'description'

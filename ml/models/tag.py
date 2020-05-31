@@ -3,10 +3,11 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 # import requests
+import fasttext
 import joblib
 from typing import List, Tuple, Optional
 
-from .base import singleton, PredictModel
+from .base import singleton, PredictModel, FastTextModel
 
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
@@ -127,6 +128,17 @@ class TagsTextModelV3(PredictModel):
         pred = self.model.predict(features)
         pred_transformed = self.mlb.inverse_transform(pred)
         return pred_transformed
+
+
+@singleton
+class TagsFasttextModel(FastTextModel):
+    def __init__(self, modelfile: str):
+        super().__init__(modelfile)
+
+    def predict(self, text, k: int = 2) -> List[str]:
+        pred = self.model.predict(text, k=k)
+        tags = [tag.lstrip('__label__') for tag in pred[0]]
+        return tags
 
 
 def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
