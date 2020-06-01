@@ -7,7 +7,7 @@ import fasttext
 import joblib
 from typing import List, Tuple, Optional
 
-from .base import singleton, PredictModel, FastTextModel
+from .base import singleton, PredictModel, FastTextModel, MLB_FILE, PRETRAINED_BERT_WEIGHTS
 
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
@@ -15,10 +15,11 @@ from .base import singleton, PredictModel, FastTextModel
 # PRETRAINED_BERT_WEIGHTS = "google/bert_uncased_L-2_H-128_A-2"
 # PRETRAINED_BERT_WEIGHTS = download_once_pretrained_transformers(
 #     "google/bert_uncased_L-4_H-256_A-4")
-PRETRAINED_BERT_WEIGHTS = "./data/models/bert_mini_finetuned_tagthr_20/"
+# PRETRAINED_BERT_WEIGHTS = "./data/models/bert_mini_finetuned_tagthr_20/"
 
-MODEL_FILE = 'data/models/tags_textbased_pred_9.joblib.gz'
-MLB_FILE = 'data/models/tags_textbased_pred_9_mlb.joblib.gz'
+# MODEL_FILE = 'data/models/tags_textbased_pred_9.joblib.gz'
+# MLB_FILE = 'data/models/tags_textbased_pred_9_mlb.joblib.gz'
+# FAST_TEXT_MODEL_FILE = 'data/models/fasttext_thr10_v1_2.bin'
 
 
 @singleton
@@ -29,6 +30,16 @@ class TagsTestModel(PredictModel):
     def predict(self, text):
         # return [[]]
         return [['test-tags', 'python']]
+
+
+@singleton
+class FastTestModel(FastTextModel):
+    def __init__(self):
+        pass
+
+    def predict(self, text):
+        # return [[]]
+        return [['test-tags', 'python', 'golang']]
 
 
 @singleton
@@ -111,7 +122,7 @@ class TagsTextModelV2(PredictModel):
 
 @singleton
 class TagsTextModelV3(PredictModel):
-    def __init__(self, modelfile: str):
+    def __init__(self, modelfile: str = None):
         super().__init__(modelfile)
 
         if os.path.exists(MLB_FILE):
@@ -132,7 +143,7 @@ class TagsTextModelV3(PredictModel):
 
 @singleton
 class TagsFasttextModel(FastTextModel):
-    def __init__(self, modelfile: str):
+    def __init__(self, modelfile: str = None):
         super().__init__(modelfile)
 
     def predict(self, text, k: int = 4, threshold: float = 0.5,
@@ -193,6 +204,7 @@ def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
 class TagPredictor(object):
     def __init__(self, init: bool = False, test_model: bool = False):
         self.model: PredictModel
+        self.ft_model: FastTextModel
         self.matcher = None
         self.test_model = test_model
         self.initialized = False
@@ -208,6 +220,7 @@ class TagPredictor(object):
         if self.test_model:
             print('loading test model...')
             self.model = TagsTestModel()
+            self.ft_model = FastTestModel()
             self.tag_list = [{'tagID': 'python', 'label': 'Python'},
                              {'tagID': 'machine-learning', 'label': 'Machine Learning'}]
             self.tags_map = {"ML": "machine-learning"}
@@ -217,7 +230,8 @@ class TagPredictor(object):
             from spacy.language import Language
             self.nlp = Language()
         else:
-            self.model = TagsTextModelV3(modelfile=MODEL_FILE)
+            self.model = TagsTextModelV3()
+            self.ft_model = TagsFasttextModel()
             self.tag_list = dataset.get_tags_list()
             self.tags_map = dataset.get_tags_map()
 
