@@ -135,9 +135,17 @@ class TagsFasttextModel(FastTextModel):
     def __init__(self, modelfile: str):
         super().__init__(modelfile)
 
-    def predict(self, text, k: int = 2) -> List[str]:
+    def predict(self, text, k: int = 4, threshold: float = 0.5,
+                top_n: int = None) -> List[str]:
+        if top_n and isinstance(top_n, int):
+            pred = self.model.predict(text, k=top_n)
+            return [tag.lstrip('__label__') for tag in pred[0]]
+
         pred = self.model.predict(text, k=k)
-        tags = [tag.lstrip('__label__') for tag in pred[0]]
+        tags = []
+        for tag, proba in zip(pred[0], pred[1]):
+            if proba >= threshold:
+                tags.append(tag.lstrip('__label__'))
         return tags
 
 

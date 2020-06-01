@@ -33,5 +33,9 @@ class Tester(unittest.TestCase):
         model = tag.TagsFasttextModel(modelfile)
 
         k = 2
-        pred = model.predict(self.ds.data['title'][0], k=k)
+        pred = model.predict(self.ds.data['title'][0], top_n=k)
         self.assertEqual(k, len(pred))
+
+        k=5
+        pred = model.predict(self.ds.data['title'][0], k=k, threshold=0.4)
+        self.assertGreaterEqual(k, len(pred))
