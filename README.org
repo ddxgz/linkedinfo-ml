@@ -3,6 +3,10 @@ A topic tags prediction service for technical articles. The model is trained on
 the dataset from https://linkedinfo.co. Find the service at
 https://ml.linkedinfo.co/, Web API document see https://ml.linkedinfo.co/docs. 
 
+Posts relate to this project:
+- [[https://pcx.linkedinfo.co/post/text-tag-prediction-bert/][Using BERT to perform Topic Tag Prediction for Technical Articles]]
+- [[https://pcx.linkedinfo.co/post/text-tag-prediction/][Multi-label classification to predict topic tags of technical articles from LinkedInfo.co]]
+
 ** Uage
 
 #+BEGIN_SRC shell
@@ -38,19 +42,5 @@ under =./data/models/= to be loaded by the Web service.
 ** TODOs
  - [X] Language identification model for info text
  - [X] Text-based info tags prediction model 
-  - [X] LinearSVC
-  - [X] Gradient Boosting
-  - [X] BERT (bert-tiny now)
   - [ ] separate models for en and cn
-  - [X] retrieve all new infos
-  - [X] filter minority tags
-  - [X] text augmentation and oversampling
-  - [ ] try different classifier layer when there's more data
-  - [ ] search more suitable data for training
   - [ ] Graph-based info tags prediction model 
-  - [x] Try different sampling methods
-  - [ ] stacking ensemble models by using concate title, text, author, and other metadata as features https://github.com/malteos/pytorch-bert-document-classification
-  - [ ] new preprocessing with tf-idf
- - [X] Migrate to GCloud run
- - [ ] limit length of text on frontend
- - [X] accept url to predict with extraction
