@@ -23,7 +23,7 @@ ALL_MODELS = {
     SK_MLB_KEY: MLB_FILE,
     FT_MODEL_KEY: FAST_TEXT_MODEL_FILE,
     BERT_PRETRAINED: PRETRAINED_BERT_WEIGHTS,
-    DS_DATA_APP: 'data/pickle/dataappset.pkl',
+    DS_DATA_APP: 'data/models/dataappset.pkl',
 }
 
 
@@ -39,8 +39,8 @@ def download_model_bin(key, model_file):
     # print(dest)
     if not os.path.exists('data/models/'):
         os.makedirs('data/models')
-    if not os.path.exists('data/pickle/'):
-        os.makedirs('data/pickle/')
+    # if not os.path.exists('data/pickle/'):
+    #     os.makedirs('data/pickle/')
     blob.download_to_filename(dest)
     return dest
 
@@ -76,5 +76,5 @@ def model_file(model_type: str) -> str:
 
 
 def init_model_files():
-    if not os.path.exists('data/models/') or not os.path.exists('data/pickle/'):
+    if not os.path.exists('data/models/'):# or not os.path.exists('data/pickle/'):
         download_models()

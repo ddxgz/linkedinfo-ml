@@ -340,7 +340,7 @@ def local_models_to_json():
 if __name__ == '__main__':
     # model_search()
     # model_persist_v7()
-    save_pretrained()
-    # local_models_to_json()
-    # upload_models()
+    # save_pretrained()
+    local_models_to_json()
+    upload_models()
     # download_models()
