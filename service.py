@@ -93,6 +93,17 @@ def deploy_gcloud():
 # def upload(model: str):
 #     pass
 
+# def imports():
+    # import dataset
 
 if __name__ == '__main__':
     cli()
+
+    # import cProfile, pstats, io
+    # profile = cProfile.Profile()
+    # pr = profile.run('imports()')
+    # # s=io.StringIO()
+    # # ps = pstats.Stats(pr, stream=s)
+    # # # ps.dump_stats('profile.txt')
+    # # ps.print_stats()
+    # pr.print_stats(sort='cumtime', reverse=True)

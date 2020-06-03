@@ -36,6 +36,11 @@ class Tester(unittest.TestCase):
         pred = model.predict(self.ds.data['title'][0], top_n=k)
         self.assertEqual(k, len(pred))
 
-        k=5
-        pred = model.predict(self.ds.data['title'][0], k=k, threshold=0.4)
+        k = 5
+        pred = model.predict(self.ds.data['title'][0], k=k, threshold=0.2)
+        print(pred)
         self.assertGreaterEqual(k, len(pred))
+
+
+if __name__ == '__main__':
+    unittest.main()

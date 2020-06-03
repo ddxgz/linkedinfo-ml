@@ -16,12 +16,15 @@ from typing import List, Tuple, Optional
 # from dataset import LAN_ENCODING
 from .models import predictor
 from .dataapp import data_app, MOUNT_PATH
+from ml.models import files
 
+
+files.init_model_files()
 
 # app.secret_key = str(uuid.uuid4())
-# app.debug = False
 # wsgiapp = app.wsgi_app
 app = FastAPI()
+# app.debug = True
 app.mount(MOUNT_PATH, WSGIMiddleware(data_app.server))
 
 

@@ -3,6 +3,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 
+from .models import files
 from . import plots
 
 
@@ -51,7 +52,8 @@ def lazy_load():
     global ds
 
     if not ds:
-        ds = dataset.load_dataapp_set()
+        ds = dataset.load_dataapp_set(
+            filename=files.ALL_MODELS[files.DS_DATA_APP])
 
 
 def page_description():

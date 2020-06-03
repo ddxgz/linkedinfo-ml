@@ -7,7 +7,10 @@ import fasttext
 import joblib
 from typing import List, Tuple, Optional
 
-from .base import singleton, PredictModel, FastTextModel, MLB_FILE, PRETRAINED_BERT_WEIGHTS
+from .base import singleton, PredictModel, FastTextModel
+# from .files import MLB_FILE, PRETRAINED_BERT_WEIGHTS
+from . import files
+from .files import MLB_FILE, PRETRAINED_BERT_WEIGHTS
 
 
 # PRETRAINED_BERT_WEIGHTS = "./data/models/google/"
@@ -125,8 +128,8 @@ class TagsTextModelV3(PredictModel):
     def __init__(self, modelfile: str = None):
         super().__init__(modelfile)
 
-        if os.path.exists(MLB_FILE):
-            mlb = joblib.load(MLB_FILE)
+        if os.path.exists(files.MLB_FILE):
+            mlb = joblib.load(files.MLB_FILE)
         else:
             raise FileNotFoundError('MLB Model file not exists! The model should be'
                                     'place under ./data/models/')
@@ -150,9 +153,11 @@ class TagsFasttextModel(FastTextModel):
                 top_n: int = None) -> List[str]:
         if top_n and isinstance(top_n, int):
             pred = self.model.predict(text, k=top_n)
-            return [tag.lstrip('__label__') for tag in pred[0]]
+            return [tag.lstrip('__label__') for tag in pred[0][0]]
 
         pred = self.model.predict(text, k=k)
+        if len(pred) == 0:
+            return []
         tags = []
         for tag, proba in zip(pred[0], pred[1]):
             if proba >= threshold:
@@ -257,10 +262,18 @@ class TagPredictor(object):
 
     def predict(self, text, entity_tags: bool = False) -> List[str]:
         tags = self.model.predict([text])[0]
+
+        tags_ft = self.ft_model.predict([text], top_n=2)
+
+        tags = self._append_ft_tags(tags, tags_ft)
+
         if entity_tags:
             # tags = append_map_tags(self, tags, text)
             tags = self._append_map_tags(tags, text)
         return tags
+
+    def _append_ft_tags(self, tags, tags_ft) -> List[str]:
+        return list(set(list(tags) + tags_ft))
 
     def _append_map_tags(self, tags, text, min_label_len: int = 9) -> List[str]:
         tags = list(tags)

@@ -1,6 +1,8 @@
 import os
+import zipfile
 import datetime
 import logging
+import json
 from dataclasses import dataclass
 
 import numpy as np
@@ -20,10 +22,12 @@ from transformers import DistilBertModel, DistilBertTokenizer, AutoTokenizer, Au
 import torch
 import joblib
 # import matplotlib.pyplot as plt
+from google.cloud import storage
 
 from ml import dataset
 import mltb
 from mltb.mltb.nlp.bert import bert_transform, download_once_pretrained_transformers, get_tokenizer_model
+from ml.models.files import ALL_MODELS, MLB_FILE, PRETRAINED_BERT_WEIGHTS, download_models
 
 # # logging.basicConfig(level=logging.INFO)
 # handler = logging.FileHandler(filename='experiment.log')
@@ -210,19 +214,41 @@ class Persistor(object):
 
         self.train_features, self.train_labels = dataset.augmented_samples(
             self.ds.data, self.ds.target, level=2, crop_ratio=0.1,
-            )
+        )
 
     def fit(self, model):
         self.model = model
         self.model.fit(self.train_features, self.train_labels)
 
     def persist(self, filename='tags_textbased_pred_9'):
-        dump_target = os.path.join(self.datahome, f'{filename}.joblib.gz')
+        model_file = f'{filename}.joblib.gz'
+        dump_target = os.path.join(self.datahome, model_file)
         m = joblib.dump(self.model, dump_target, compress=3)
 
-        dump_target_mlb = os.path.join(
-            self.datahome, f'{filename}_mlb.joblib.gz')
+        mlb_file = f'{filename}_mlb.joblib.gz'
+        dump_target_mlb = os.path.join(self.datahome, mlb_file)
         m = joblib.dump(self.ds.mlb, dump_target_mlb, compress=3)
+
+        save_model_url(SK_MODEL_KEY, dump_target)
+        save_model_url(SK_MLB_KEY, dump_target_mlb)
+
+
+def save_model_url(key: str, model_file: str, location: str = 'local'):
+    """model file path should be abolute path"""
+    location_file = 'model_location.json'
+
+    if os.path.exists(location_file):
+        with open(location_file, 'r') as f:
+            model_location = json.load(f)
+    else:
+        model_location = {}
+
+    loc = model_location.get(location, {})
+    loc[key] = model_file
+    model_location[location] = loc
+
+    with open(location_file, 'w') as f:
+        json.dump(model_location, f)
 
 
 def model_persist_v6():
@@ -247,7 +273,74 @@ def model_persist_v6():
     per.persist()
 
 
+def model_persist_v7():
+    # from mltb.bert import BertForSequenceClassificationTransformer
+    per = Persistor()
+    col_text = 'description'
+    ds_param = dict(from_batch_cache='info', lan='en',
+                    concate_title=True,
+                    filter_tags_threshold=20)
+    per.load(ds_param)
+    per.preprocess()
+
+    batch_size = 128
+    model_name = "bert_mini_finetuned_tagthr_20"
+    clf = Pipeline([
+        ('bert_tran', mltb.mltb.nlp.bert.BertForSequenceClassificationTransformer(
+            col_text, model_name, batch_size)),
+        ('clf', OneVsRestClassifier(LinearSVC(penalty='l2', C=0.1, dual=True))),
+    ])
+
+    per.fit(clf)
+    per.persist(filename='tags_textbased_pred_10')
+
+
+def upload_model_bin(key, model_file: str):
+    client = storage.Client()
+    bucket_name = 'tag-models'
+    # bucket = client.create_bucket(bucket_name)
+    bucket = client.bucket(bucket_name)
+
+    dest = model_file.split('/')[-1]
+    blob = bucket.blob(dest)
+
+    blob.upload_from_filename(model_file)
+
+    save_model_url(key, f'{bucket.name}/{dest}', location='gcloud')
+
+
+def upload_models():
+    location_file = 'model_location.json'
+
+    if os.path.exists(location_file):
+        with open(location_file, 'r') as f:
+            model_location = json.load(f)
+
+        local = model_location.get('local', None)
+        if local is None:
+            return
+
+        for k, v in local.items():
+            if os.path.isdir(v):
+                zipname = f'{v.rstrip("/")}.zip'
+                with zipfile.ZipFile(zipname, 'w') as zipObj:
+                    for folder, subfolders, files in os.walk(v):
+                        for fname in files:
+                            filePath = os.path.join(folder, fname)
+                            zipObj.write(filePath, os.path.basename(filePath))
+                v = zipname
+            upload_model_bin(k, v)
+
+
+def local_models_to_json():
+    for k, v in ALL_MODELS.items():
+        save_model_url(k, v, location='local')
+
+
 if __name__ == '__main__':
     # model_search()
-    model_persist_v6()
-    # save_pretrained()
+    # model_persist_v7()
+    save_pretrained()
+    # local_models_to_json()
+    # upload_models()
+    # download_models()

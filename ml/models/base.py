@@ -5,20 +5,7 @@ import fasttext
 import joblib
 from typing import List, Tuple, Optional
 
-
-PRETRAINED_BERT_WEIGHTS = "./data/models/bert_mini_finetuned_tagthr_20/"
-
-MODEL_FILE = 'data/models/tags_textbased_pred_9.joblib.gz'
-MLB_FILE = 'data/models/tags_textbased_pred_9_mlb.joblib.gz'
-FAST_TEXT_MODEL_FILE = 'data/models/fasttext_thr10_v1_2.bin'
-
-
-def model_file(model_type: str) -> str:
-    if model_type == 'fasttext':
-        return FAST_TEXT_MODEL_FILE
-    if model_type == 'tag_clf':
-        return MODEL_FILE
-    return 'not matched model type'
+from . import files
 
 
 def singleton(cls, *args, **kwargs):
@@ -55,7 +42,7 @@ class PredictModel(BasePredictModel):
 
     def _load_model(self, modelfile: str = None):
         if modelfile is None:
-            modelfile = model_file('tag_clf')
+            modelfile = files.model_file(files.SK_MODEL_KEY)
 
         if os.path.exists(modelfile):
             model = joblib.load(modelfile)
@@ -63,7 +50,7 @@ class PredictModel(BasePredictModel):
         else:
             cwd = os.getcwd()
             raise FileNotFoundError(f'Model file not exists! The model should be'
-                                    'place under ./data/models/. CWD: {cwd}')
+                                    'place under data/models/  CWD: {cwd}')
 
 
 class FastTextModel(BasePredictModel):
@@ -78,11 +65,12 @@ class FastTextModel(BasePredictModel):
 
     def _load_model(self, modelfile: str = None):
         if modelfile is None:
-            modelfile = model_file('fasttext')
+            modelfile = files.model_file(files.FT_MODEL_KEY)
 
         if os.path.exists(modelfile):
             model = fasttext.load_model(modelfile)
             return model
         else:
+            cwd = os.getcwd()
             raise FileNotFoundError(f'fastText Model file not exists! The model should be'
-                                    'place under ./data/models/. CWD: {cwd}')
+                                    'place under data/models/  CWD: {cwd}')

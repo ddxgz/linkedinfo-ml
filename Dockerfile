@@ -1,6 +1,5 @@
 # FROM ubuntu:20.04
 # FROM ubuntu:19.04
-# FROM ubuntu:18.04
 FROM python:3.8
 
 # backup old sources.list
@@ -14,16 +13,18 @@ COPY . /code
 #     python3 \
 #     python3-dev \
 #     python3-pip 
-    #  && \ 
-    # rm -rf /var/lib/apt/lists/*
+#  && \ 
+# rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements.txt
 # RUN python -m pip install -U --force-reinstall pip
-# RUN pip3 install -r requirements.txt --no-cache-dir
-RUN pip3 install -r requirements.txt 
+RUN pip3 install -r requirements.txt --no-cache-dir
+# RUN pip3 install -r requirements.txt 
+
+ENV GOOGLE_APPLICATION_CREDENTIALS="/code/credential/data science-c9a7e0743300.json"
 
 # CMD gunicorn -b 0.0.0.0:8070 -k gevent webapp:wsgiapp
 
 # ENTRYPOINT gunicorn -b 0.0.0.0:80 -k gevent -t 120 webapp:wsgiapp
 # ENTRYPOINT ["gunicorn", "-b 0.0.0.0:80", "-k gevent", "-t 120", "webapp:wsgiapp"]
-ENTRYPOINT ["gunicorn", "-b 0.0.0.0:80", "-w 4", "-k uvicorn.workers.UvicornWorker", "-t 120", "webapp:app"]
+ENTRYPOINT ["gunicorn", "-b 0.0.0.0:80", "-w 4", "-k uvicorn.workers.UvicornWorker", "-t 120", "ml.webapp:app"]
