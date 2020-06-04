@@ -524,7 +524,7 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     return ds
 
 
-def load_dataapp_set(filename='data/pickle/dataappset.pkl'):
+def load_dataapp_set(filename='data/models/dataappset.pkl'):
     if not os.path.exists(filename):
         return ds_dataapp()
     with open(filename, 'rb')as f:
