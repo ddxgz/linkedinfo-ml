@@ -37,8 +37,8 @@ def download_model_bin(key, model_file):
     blob = bucket.blob(src)
     dest = f'data/models/{model_file.split("/")[-1]}'
     # print(dest)
-    if not os.path.exists('data/models/'):
-        os.makedirs('data/models')
+    if not os.path.exists('data/models'):
+        os.makedirs('data/models', exist_ok=True)
     # if not os.path.exists('data/pickle/'):
     #     os.makedirs('data/pickle/')
     blob.download_to_filename(dest)
@@ -48,33 +48,51 @@ def download_model_bin(key, model_file):
 def download_models(location='gcloud'):
     location_file = 'model_location.json'
 
-    if os.path.exists(location_file):
-        with open(location_file, 'r') as f:
-            model_location = json.load(f)
+    if not os.path.exists(location_file):
+        raise Exception(
+            'model_location.json not exist, cannot download models')
 
-        local = model_location.get(location, None)
-        if local is None:
-            return
+    with open(location_file, 'r') as f:
+        model_location = json.load(f)
 
-        for k, v in local.items():
-            if v[-1] == '/':
-                zipname = f'{v.rstrip("/")}.zip'
-                v = zipname
+    local = model_location.get(location, None)
 
-            dest_file = download_model_bin(k, v)
+    if local is None:
+        raise Exception(f'model_location.json does not contain {location} object, '
+                        'cannot determine which to download models')
 
-            if dest_file.endswith('.zip'):
-                with zipfile.ZipFile(dest_file, 'r') as zipObj:
-                    zipObj.extractall(dest_file.rstrip('.zip') + '/')
+    for k, v in local.items():
+        if v[-1] == '/':
+            zipname = f'{v.rstrip("/")}.zip'
+            v = zipname
+
+        dest_file = download_model_bin(k, v)
+
+        print(f'downloaded file: {dest_file}')
+
+        if dest_file.endswith('.zip'):
+            with zipfile.ZipFile(dest_file, 'r') as zipObj:
+                zipObj.extractall(dest_file.rstrip('.zip') + '/')
 
 
 def model_file(model_type: str) -> str:
-    if not os.path.exists('data/models/'):
+    if not os.path.exists('data/models'):
         download_models()
 
     return ALL_MODELS.get(model_type, '')
 
 
-def init_model_files():
-    if not os.path.exists('data/models/'):# or not os.path.exists('data/pickle/'):
-        download_models()
+def init_model_files(force=False):
+    # or not os.path.exists('data/pickle/'):
+    if not force and os.path.exists('data/models'):
+        return
+    download_models()
+
+
+if __name__ == '__main__':
+    init_model_files()
+    # print(model_file(DS_DATA_APP))
+    # dest_file = 'data/models/bert_mini_finetuned_tagthr_20----.zip'
+    # if dest_file.endswith('.zip'):
+    #     with zipfile.ZipFile(dest_file, 'r') as zipObj:
+    #         zipObj.extractall(dest_file.rstrip('.zip') + '/')
