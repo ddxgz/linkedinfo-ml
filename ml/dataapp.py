@@ -53,7 +53,7 @@ def lazy_load():
 
     if not ds:
         ds = dataset.load_dataapp_set(
-            filename=files.ALL_MODELS[files.DS_DATA_APP])
+            filename=files.model_file(files.DS_DATA_APP))
 
 
 def page_description():

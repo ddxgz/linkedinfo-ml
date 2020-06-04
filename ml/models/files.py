@@ -23,7 +23,7 @@ ALL_MODELS = {
     SK_MLB_KEY: MLB_FILE,
     FT_MODEL_KEY: FAST_TEXT_MODEL_FILE,
     BERT_PRETRAINED: PRETRAINED_BERT_WEIGHTS,
-    DS_DATA_APP: 'data/pickle/dataappset.pkl',
+    DS_DATA_APP: 'data/models/dataappset.pkl',
 }
 
 
