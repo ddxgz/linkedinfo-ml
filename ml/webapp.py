@@ -19,7 +19,7 @@ from .dataapp import data_app, MOUNT_PATH
 from ml.models import files
 
 
-files.init_model_files()
+# files.init_model_files()
 
 # app.secret_key = str(uuid.uuid4())
 # wsgiapp = app.wsgi_app

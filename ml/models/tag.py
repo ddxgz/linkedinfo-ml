@@ -149,20 +149,36 @@ class TagsFasttextModel(FastTextModel):
     def __init__(self, modelfile: str = None):
         super().__init__(modelfile)
 
-    def predict(self, text, k: int = 4, threshold: float = 0.5,
+    def predict(self, text: str, k: int = 4, threshold: float = 0.001,
+                at_least_one: bool = True,
                 top_n: int = None) -> List[str]:
+        text = self._preprocess(text)
+
         if top_n and isinstance(top_n, int):
             pred = self.model.predict(text, k=top_n)
-            return [tag.lstrip('__label__') for tag in pred[0][0]]
+            # remove the __label__ prefix
+            return [tag[9:] for tag in pred[0]]
 
         pred = self.model.predict(text, k=k)
+        print(pred)
         if len(pred) == 0:
             return []
         tags = []
+
+        if at_least_one:
+            tags.append(pred[0][0][9:])
+
         for tag, proba in zip(pred[0], pred[1]):
             if proba >= threshold:
-                tags.append(tag.lstrip('__label__'))
+                print(tag)
+                tags.append(tag[9:])
+                print(tags)
         return tags
+
+    def _preprocess(self, text: str) -> str:
+        text = text.replace('\n', ' ')
+        text = text.replace('\t', ' ')
+        return text
 
 
 def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
@@ -260,10 +276,12 @@ class TagPredictor(object):
 
         self.initialized = True
 
-    def predict(self, text, entity_tags: bool = False) -> List[str]:
+    def predict(self, text: str, entity_tags: bool = False) -> List[str]:
         tags = self.model.predict([text])[0]
 
-        tags_ft = self.ft_model.predict([text], top_n=2)
+        # tags_ft = self.ft_model.predict(text, top_n=2)
+        tags_ft = self.ft_model.predict(text, k=3, threshold=0.15,
+                                        at_least_one=False)
 
         tags = self._append_ft_tags(tags, tags_ft)
 
