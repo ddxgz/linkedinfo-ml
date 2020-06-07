@@ -129,7 +129,7 @@
                         <b-card-title>The most possible tags are: </b-card-title>
                         <h5>
                             <span v-for="(item, i) in info.tags">
-                                <b-badge variant="secondary"
+                                <b-badge variant="tag"
                                          :href="'https://www.linkedinfo.co/tags/'+item"
                                          target="_blank">
                                     <!-- style="margin-right: 5px;"> -->
@@ -147,7 +147,7 @@
                     <div v-if="info.language">
                         <h4>The text is in language: </h4>
                         <h5>
-                            <b-badge variant="info">
+                            <b-badge variant="lan">
                                 <!-- style="margin-right: 5px;"> -->
                                 <span>{{ info.language }}</span>
                             </b-badge>
@@ -548,6 +548,33 @@
             padding-top: 40px;
             padding-bottom: 20px;
         }
+
+        .badge-tag {
+            /* background-color: #e1ecf4;
+            color: #4279a2; */
+            background-color: rgb(237, 246, 254);
+            color: rgb(63, 148, 247);
+            font-weight: normal;
+            border-radius: 3px;
+            padding: .4em .4em;
+        }
+
+        .badge-tag:focus,
+        .badge-tag.focus {
+            /* background-color: #0490f3;
+            color: #517c9c; */
+        }
+
+        .badge-lan {
+            background-color: rgb(229, 245, 235);
+            color: rgb(93, 183, 114);
+            font-weight: normal;
+            border-radius: 3px;
+            padding: .4em .4em;
+        }
+
+        .badge-lan:focus,
+        .badge-lan.focus {}
     </style>
 </body>
 
