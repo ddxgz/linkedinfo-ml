@@ -42,8 +42,8 @@
                href="#">Tag Prediction</a>
             <a class="p-2 text-dark"
                href="/data">Data</a>
-            <a class="p-2 text-dark"
-               href="https://www.linkedinfo.co/about">About</a>
+            <!-- <a class="p-2 text-dark"
+               href="https://www.linkedinfo.co/about">About</a> -->
         </nav>
     </div>
 
@@ -58,7 +58,7 @@
                    target="_blank">LinkedInfo.co</a> and questions on Stack Overflow.
             </p>
             <p class="lead">
-                You can either choose to submit the text or the URL of the article you
+                You can either choose to submit the title/text or the URL of the article you
                 want to get tags.
             </p>
             <p></p>
@@ -71,7 +71,7 @@
                             align="center">
                         <b-tab title="Text"
                                name="byText">
-                            <label for="article-text">Paste the text of an article to upload and get tag</label>
+                            <label for="article-text">Paste the title/text of an article to get tag</label>
 
                             <!-- <b-form-item label="Title">
                                     <b-input v-model="form.title"></b-input>
@@ -90,7 +90,7 @@
 
                         <b-tab title="URL"
                                name="byUrl">
-                            <label for="article-url">Paste the URL of an article to upload and
+                            <label for="article-url">Paste the URL of an article to extract and
                                 get tag</label>
 
                             <!-- <b-form-item label="Title">
@@ -125,7 +125,7 @@
                  align="center">
                 <b-card style="max-width: 480px;"
                         align="center">
-                        <b-card-title>Result</b-card-title>
+                    <b-card-title>Result</b-card-title>
                     {{ textShow }}
                     <!-- <div v-if="info.language"> -->
                     <!-- <h4>The text is in language: </h4> -->
@@ -137,19 +137,19 @@
                     </b-badge>
                     <!-- </h5> -->
                     <!-- </div> -->
-                    <!-- <p></p> -->
                     <span v-if="info.tags.length > 0">
                         <!-- <b-card-title>The most possible tags are: </b-card-title> -->
                         with topic tags
+                        <p></p>
                         <h5>
-                        <span v-for="(item, i) in info.tags">
-                            <b-badge variant="tag"
-                                     :href="'https://www.linkedinfo.co/tags/'+item"
-                                     target="_blank">
-                                <!-- style="margin-right: 5px;"> -->
-                                <span>{{ item }}</span>
-                            </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
-                        </span>
+                            <span v-for="(item, i) in info.tags">
+                                <b-badge variant="tag"
+                                         :href="'https://www.linkedinfo.co/tags/'+item"
+                                         target="_blank">
+                                    <!-- style="margin-right: 5px;"> -->
+                                    <span>{{ item }}</span>
+                                </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
+                            </span>
                         </h5>
                         <p></p>
                         <b-card-text class="small text-muted">Click on a tag to find more</b-card-text>
@@ -163,7 +163,7 @@
                 <div>
                     <p></p>
                     <p></p>
-                    <h5>Don't feel right about the tags?</h5>
+                    <h5>Feel not right about the tags?</h5>
                     <p>Please <b-link type="text"
                                 v-b-modal.modal-tag-suggestion>click
                             here</b-link> to suggest
@@ -171,7 +171,6 @@
                         Your feedback is
                         valuable for improving the model!
                     </p>
-
 
                     <b-modal id="modal-tag-suggestion"
                              ref="modal"
@@ -193,11 +192,6 @@
                         </form>
                     </b-modal>
                 </div>
-                <!-- <img :src="image" /> -->
-                <!-- <b-alert title="The most possible lesion type is: "
-                              type="success"
-                              description="这是一句绕口令：黑灰化肥会挥发发灰黑化肥挥发；灰黑化肥会挥发发黑灰化肥发挥。 黑灰化肥会挥发发灰黑化肥黑灰挥发化为灰……">
-                    </b-alert> -->
             </div>
             <!-- <b-alert :show="isSuccess"
                      center
@@ -208,7 +202,6 @@
             <b-alert :show="isSaving"
                      center
                      variant="secondary">
-                <!-- Predicting... -->
                 Processing...
                 <p>
                     It may take some time for the model loading if you are the first
@@ -285,8 +278,8 @@
                                href="/data">Data</a></li>
                         <li><a class="text-muted"
                                href="/docs">Web API Doc</a></li>
-                        <li><a class="text-muted"
-                               href="https://www.linkedinfo.co/about">About</a></li>
+                        <!-- <li><a class="text-muted"
+                               href="https://www.linkedinfo.co/about">About</a></li> -->
                     </ul>
                 </div>
                 <!-- <div class="col-6 col-md">
