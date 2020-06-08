@@ -79,10 +79,10 @@ data_app.layout = html.Div(
         dbc.Row(children=[
             dbc.Col(children=[
                 dcc.Graph(figure=plots.lan_fig(ds)),
-            ]),
+            ], md=6, lg=6),
             dbc.Col(children=[
                 dcc.Graph(figure=plots.tags_per_article(ds)),
-            ]),
+            ], md=6, lg=6),
         ]),
         # html.Label(f'Here are the top {top_tags} tags'),
         dcc.Graph(figure=plots.tags_rank_fig(ds, top_tags)),
