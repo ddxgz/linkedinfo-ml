@@ -3,7 +3,9 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+from typing import Optional
 
+from . import dataset
 from .models import files
 from . import plots
 
@@ -41,7 +43,7 @@ style = {'font-size': '18px',
          }
 
 # ds = dataset.load_dataapp_set()
-ds = None
+ds: Optional[dataset.DataappSet] = None
 top_tags = 30
 top_creators = 30
 top_domains = 30
@@ -49,7 +51,6 @@ top_domains = 30
 
 def lazy_load():
     # print('start to load model and data')
-    from . import dataset
 
     global ds
 
@@ -59,16 +60,16 @@ def lazy_load():
 
 
 def page_description():
-    lazy_load()
+    # lazy_load()
     with open('vuejs/data-page.md') as f:
         txt = f.read()
     return txt
 
 
-data_app.title = 'Data of LinkedInfo.co'
-data_app.layout = html.Div(
-    style=style,
-    children=[
+lazy_load()
+
+if ds is not None:
+    app_children = [
         dcc.Markdown(children=page_description()),
         # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
         html.H2(children=f'Number of Tags: {len(ds.tags)}',
@@ -88,7 +89,15 @@ data_app.layout = html.Div(
         dcc.Graph(figure=plots.tags_rank_fig(ds, top_tags)),
         dcc.Graph(figure=plots.creators_rank_fig(ds, top_creators)),
         dcc.Graph(figure=plots.domain_rank_fig(ds, top_domains)),
-    ])
+    ]
+else:
+    app_children = [
+        html.H2(children=f'Load dataset failed, try again later...')]
+
+data_app.title = 'Data of LinkedInfo.co'
+data_app.layout = html.Div(
+    style=style,
+    children=app_children)
 
 if __name__ == '__main__':
     data_app.run_server(debug=True, host='127.0.0.1', port=5000)
