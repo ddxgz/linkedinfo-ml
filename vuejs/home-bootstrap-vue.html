@@ -123,72 +123,76 @@
             </b-row>
             <div v-if="isSuccess"
                  align="center">
-                <b-card class="box-card"
+                <b-card style="max-width: 480px;"
                         align="center">
-                    <div v-if="info.tags.length > 0">
-                        <b-card-title>The most possible tags are: </b-card-title>
+                        <b-card-title>Result</b-card-title>
+                    {{ textShow }}
+                    <!-- <div v-if="info.language"> -->
+                    <!-- <h4>The text is in language: </h4> -->
+                    <!-- <h5 v-if="info.language"> -->
+                    <b-badge variant="lan"
+                             v-if="info.language">
+                        <!-- style="margin-right: 5px;"> -->
+                        <span>{{ info.language }}</span>
+                    </b-badge>
+                    <!-- </h5> -->
+                    <!-- </div> -->
+                    <!-- <p></p> -->
+                    <span v-if="info.tags.length > 0">
+                        <!-- <b-card-title>The most possible tags are: </b-card-title> -->
+                        with topic tags
                         <h5>
-                            <span v-for="(item, i) in info.tags">
-                                <b-badge variant="tag"
-                                         :href="'https://www.linkedinfo.co/tags/'+item"
-                                         target="_blank">
-                                    <!-- style="margin-right: 5px;"> -->
-                                    <span>{{ item }}</span>
-                                </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
-                            </span>
+                        <span v-for="(item, i) in info.tags">
+                            <b-badge variant="tag"
+                                     :href="'https://www.linkedinfo.co/tags/'+item"
+                                     target="_blank">
+                                <!-- style="margin-right: 5px;"> -->
+                                <span>{{ item }}</span>
+                            </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
+                        </span>
                         </h5>
-                        <p>Click on a tag to find more</p>
-                    </div>
-                    <div v-else>
+                        <p></p>
+                        <b-card-text class="small text-muted">Click on a tag to find more</b-card-text>
+                    </span>
+                    <span v-else>
                         <b-card-title>No tags could be provided</b-card-title>
                         You may try to
                         give more text
-                    </div>
-                    <div v-if="info.language">
-                        <h4>The text is in language: </h4>
-                        <h5>
-                            <b-badge variant="lan">
-                                <!-- style="margin-right: 5px;"> -->
-                                <span>{{ info.language }}</span>
-                            </b-badge>
-                        </h5>
-                    </div>
-                    <div>
-                        <p></p>
-                        <p></p>
-                        <h5>Don't feel right about the tags?</h5>
-                        <p>Please <b-link type="text"
-                                    v-b-modal.modal-tag-suggestion>click
-                                here</b-link> to suggest
-                            your tags.</p>
-                        <p>
-                            Your feedback is
-                            valuable for improving the model!
-                        </p>
-
-
-                        <b-modal id="modal-tag-suggestion"
-                                 ref="modal"
-                                 title="Submit Your Suggested Tags"
-                                 @ok="handleOk"
-                                 @close="resetModal"
-                                 centered>
-                            <form ref="form"
-                                  @submit.stop.prevent="handleSubmit">
-                                <b-form-group :state="nameState"
-                                              label="separate by ',' or ';'"
-                                              label-for="name-input"
-                                              invalid-feedback="Text is required">
-                                    <b-form-input id="name-input"
-                                                  v-model="tagSuggest"
-                                                  :state="nameState"
-                                                  required></b-form-input>
-                                </b-form-group>
-                            </form>
-                        </b-modal>
-                    </div>
+                    </span>
                 </b-card>
+                <div>
+                    <p></p>
+                    <p></p>
+                    <h5>Don't feel right about the tags?</h5>
+                    <p>Please <b-link type="text"
+                                v-b-modal.modal-tag-suggestion>click
+                            here</b-link> to suggest
+                        your tags.
+                        Your feedback is
+                        valuable for improving the model!
+                    </p>
 
+
+                    <b-modal id="modal-tag-suggestion"
+                             ref="modal"
+                             title="Submit Your Suggested Tags"
+                             @ok="handleOk"
+                             @close="resetModal"
+                             centered>
+                        <form ref="form"
+                              @submit.stop.prevent="handleSubmit">
+                            <b-form-group :state="nameState"
+                                          label="separate by ',' or ';'"
+                                          label-for="name-input"
+                                          invalid-feedback="Text is required">
+                                <b-form-input id="name-input"
+                                              v-model="tagSuggest"
+                                              :state="nameState"
+                                              required></b-form-input>
+                            </b-form-group>
+                        </form>
+                    </b-modal>
+                </div>
                 <!-- <img :src="image" /> -->
                 <!-- <b-alert title="The most possible lesion type is: "
                               type="success"
@@ -327,8 +331,19 @@
             },
             mounted: function () {
                 this.reqModelInit();
+
+                //For dev 
+                // this.form.description = " This is a topic tags prediction service for technical articles. It uses BERT and is trained on the dataset of LinkedInfo.co and questions on Stack Overflow. "
+                // this.onSubmit();
             },
             computed: {
+                textShow() {
+                    var msg = 'The article is'
+                    if (this.info.language) {
+                        msg += " in language "
+                    }
+                    return msg;
+                },
                 isByUrl() {
                     // return this.activeTab === 'byUrl';
                     return this.activeTab === 1;
@@ -395,6 +410,7 @@
                     ).then(response => {
                         this.currentStatus = STATUS_SUCCESS;
                         this.info = response.data;
+                        // this.info.language = null;
                     }
                     ).catch(err => {
                         // console.log(err)
@@ -556,7 +572,8 @@
             color: rgb(63, 148, 247);
             font-weight: normal;
             border-radius: 3px;
-            padding: .4em .4em;
+            padding: .2em .2em;
+            font-size: 16px;
         }
 
         .badge-tag:focus,
@@ -570,7 +587,8 @@
             color: rgb(93, 183, 114);
             font-weight: normal;
             border-radius: 3px;
-            padding: .4em .4em;
+            padding: .2em .2em;
+            font-size: 16px;
         }
 
         .badge-lan:focus,

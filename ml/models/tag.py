@@ -40,9 +40,9 @@ class FastTestModel(FastTextModel):
     def __init__(self):
         pass
 
-    def predict(self, text):
+    def predict(self, text, *args, **kwargs):
         # return [[]]
-        return [['test-tags', 'python', 'golang']]
+        return ['test-tags', 'python', 'golang', 'machine-learning']
 
 
 @singleton
@@ -135,7 +135,7 @@ class TagsTextModelV3(PredictModel):
                                     'place under ./data/models/')
         self.mlb = mlb
 
-    def predict(self, text):
+    def predict(self, text: List[str]):
         col_text = 'description'
         features = pd.DataFrame(text, columns=[col_text])
 
@@ -278,6 +278,7 @@ class TagPredictor(object):
 
     def predict(self, text: str, entity_tags: bool = False) -> List[str]:
         tags = self.model.predict([text])[0]
+        # tags: [str] = []
 
         # tags_ft = self.ft_model.predict(text, top_n=2)
         tags_ft = self.ft_model.predict(text, k=3, threshold=0.15,
