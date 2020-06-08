@@ -1,8 +1,11 @@
 from collections import Counter
 
+import plotly.io as pio
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+
+pio.templates.default = 'plotly_white'
 
 
 def tags_per_article(ds) -> go.Figure:
@@ -23,7 +26,7 @@ def tags_per_article(ds) -> go.Figure:
                          bargap=0.2,
                          xaxis=dict(dtick=1),
                          #  width=1000, height=800
-                         height=500
+                         #  height=500
                          )
 
     return fig_tl

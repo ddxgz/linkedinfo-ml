@@ -2,6 +2,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 
 from .models import files
 from . import plots
@@ -23,7 +24,8 @@ external_stylesheets = [
 ]
 
 data_app = dash.Dash(__name__, requests_pathname_prefix=MOUNT_PATH,
-                     external_stylesheets=external_stylesheets,
+                     #  external_stylesheets=external_stylesheets,
+                     external_stylesheets=[dbc.themes.BOOTSTRAP],
                      meta_tags=[{"name": "viewport", "content": "width=device-width"}])
 
 colors = {
@@ -64,21 +66,29 @@ def page_description():
 
 
 data_app.title = 'Data of LinkedInfo.co'
-data_app.layout = html.Div(style=style, children=[
-    dcc.Markdown(children=page_description()),
-    dcc.Graph(figure=plots.lan_fig(ds)),
-    # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
-    html.H2(children=f'Number of Tags: {len(ds.tags)}',
-            style={
-                'textAlign': 'center',
-                'color': colors['text']
-            }),
-    # html.Label(f'Here are the top {top_tags} tags'),
-    dcc.Graph(figure=plots.tags_rank_fig(ds, top_tags)),
-    dcc.Graph(figure=plots.tags_per_article(ds)),
-    dcc.Graph(figure=plots.creators_rank_fig(ds, top_creators)),
-    dcc.Graph(figure=plots.domain_rank_fig(ds, top_domains)),
-])
+data_app.layout = html.Div(
+    style=style,
+    children=[
+        dcc.Markdown(children=page_description()),
+        # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
+        html.H2(children=f'Number of Tags: {len(ds.tags)}',
+                style={
+                    'textAlign': 'center',
+                    # 'color': colors['text']
+                }),
+        dbc.Row(children=[
+            dbc.Col(children=[
+                dcc.Graph(figure=plots.lan_fig(ds)),
+            ]),
+            dbc.Col(children=[
+                dcc.Graph(figure=plots.tags_per_article(ds)),
+            ]),
+        ]),
+        # html.Label(f'Here are the top {top_tags} tags'),
+        dcc.Graph(figure=plots.tags_rank_fig(ds, top_tags)),
+        dcc.Graph(figure=plots.creators_rank_fig(ds, top_creators)),
+        dcc.Graph(figure=plots.domain_rank_fig(ds, top_domains)),
+    ])
 
 if __name__ == '__main__':
     data_app.run_server(debug=True, host='127.0.0.1', port=5000)
