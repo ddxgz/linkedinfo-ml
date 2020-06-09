@@ -8,6 +8,7 @@ FROM python:3.8 as base
 #ADD sources.list /etc/apt/sources.list
 WORKDIR /code
 COPY . /code
+COPY credentials.json /code/credentials.json
 # RUN apk add --no-cache gcc musl-dev linux-headers make automake g++ subversion python3-dev
 # RUN apt-get -qqy update && apt-get install -y \
 #     python3 \
@@ -23,7 +24,8 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 
 FROM base as app
 
-ENV GOOGLE_APPLICATION_CREDENTIALS="/code/credential/data science-c9a7e0743300.json"
+
+ENV GOOGLE_APPLICATION_CREDENTIALS="/code/credentials.json"
 
 # CMD gunicorn -b 0.0.0.0:8070 -k gevent webapp:wsgiapp
 
