@@ -72,11 +72,23 @@ if ds is not None:
     app_children = [
         dcc.Markdown(children=page_description()),
         # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
-        html.H2(children=f'Number of Tags: {len(ds.tags)}',
-                style={
-                    'textAlign': 'center',
-                    # 'color': colors['text']
-                }),
+        dbc.Row(children=[
+            dbc.Col(),
+            dbc.Col(
+                dbc.Card([
+                    # dbc.CardHeader("Number of Tags"),
+                    dbc.CardBody([
+                        html.H3("Number of Tags"),
+                        html.H5(len(ds.tags))
+                        # style={
+                        #     'textAlign': 'center',
+                        #     # 'color': colors['text']
+                        # }),
+                    ])
+                ]), sm=12, md=12, lg=4),
+            dbc.Col(),
+        ]),
+
         dbc.Row(children=[
             dbc.Col(children=[
                 dcc.Graph(figure=plots.lan_fig(ds)),
