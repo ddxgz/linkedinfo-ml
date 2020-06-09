@@ -342,5 +342,5 @@ if __name__ == '__main__':
     # model_persist_v7()
     # save_pretrained()
     local_models_to_json()
-    # upload_models()
+    upload_models()
     # download_models()

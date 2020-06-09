@@ -16,6 +16,7 @@ SK_MLB_KEY = 'sk_mlb'
 FT_MODEL_KEY = 'fasttext'
 BERT_PRETRAINED = 'bert_pretrained'
 DS_DATA_APP = 'ds_dataapp'
+PCA_DATA_APP = 'pca_dataapp'
 
 
 ALL_MODELS = {
@@ -24,6 +25,7 @@ ALL_MODELS = {
     FT_MODEL_KEY: FAST_TEXT_MODEL_FILE,
     BERT_PRETRAINED: PRETRAINED_BERT_WEIGHTS,
     DS_DATA_APP: 'data/models/dataappset.pkl',
+    PCA_DATA_APP: 'data/models/pca_3_bert_mini_finetuned_tagthr_20.pkl',
 }
 
 

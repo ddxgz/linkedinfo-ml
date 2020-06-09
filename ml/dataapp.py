@@ -1,4 +1,5 @@
 # from flask import Flask, escape, request
+import pandas as pd
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -80,6 +81,7 @@ data_app.index_string = '''
 
 # ds = dataset.load_dataapp_set()
 ds: Optional[dataset.DataappSet] = None
+pca_titles: Optional[pd.DataFrame] = None
 top_tags = 30
 top_creators = 30
 top_domains = 30
@@ -88,11 +90,14 @@ top_domains = 30
 def lazy_load():
     # print('start to load model and data')
 
-    global ds
+    global ds, pca_titles
 
     if not ds:
         ds = dataset.load_dataapp_set(
             filename=files.model_file(files.DS_DATA_APP))
+
+    if not pca_titles:
+        pca_titles = pd.read_pickle(files.ALL_MODELS[files.PCA_DATA_APP])
 
 
 def page_description():
@@ -109,6 +114,8 @@ if ds is not None:
         dcc.Markdown(children=page_description(),
                      style={'margin-bottom': '40px'}),
         # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
+        dcc.Graph(figure=plots.pca_titles_3d_fig(
+            pca_titles, sub_sample_size=0.9)),
         dbc.Row(children=[
             dbc.Col(),
             dbc.Col(

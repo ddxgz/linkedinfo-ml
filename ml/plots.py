@@ -100,3 +100,12 @@ def domain_rank_fig(ds, top: int = 20) -> go.Figure:
     fig_Y.update_yaxes(showticklabels=False)
     fig_Y.update_layout(title_x=0.5)
     return fig_Y
+
+
+def pca_titles_3d_fig(df, sub_sample_size: float = 1) -> go.Figure:
+    fig = px.scatter_3d(df.sample(frac=sub_sample_size),
+                        x=0, y=1, z=2, hover_name='title', 
+                        title='Similarity of Articles (can zoom in)',
+                        height=700)
+    fig.update_layout(title_x=0.5)
+    return fig
