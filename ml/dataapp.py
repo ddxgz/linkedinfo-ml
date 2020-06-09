@@ -37,10 +37,46 @@ colors = {
 
 style = {'font-size': '18px',
          'text-align': 'center',
-         'padding-top': '40px',
+         'padding-top': '20px',
          'padding-bottom': '40px',
          'columnCount': 1
          }
+
+data_app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+    </head>
+    <body>
+        <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
+            <h5 class="my-0 mr-md-auto font-weight-normal"><a class="p-2 text-dark"
+                href="/">LinkedInfo ML</a></h5>
+            <nav class="my-2 my-md-0 mr-md-3">
+                <a class="p-2 text-dark"
+                href="https://www.linkedinfo.co">Linkedinfo</a>
+                <a class="p-2 text-dark"
+                href="/">Tag Prediction</a>
+                <a class="p-2 text-dark"
+                href="/data">Data</a>
+                <!-- <a class="p-2 text-dark"
+                href="https://www.linkedinfo.co/about">About</a> -->
+            </nav>
+        </div>
+
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+        <div>My Custom footer</div>
+    </body>
+</html>
+'''
 
 # ds = dataset.load_dataapp_set()
 ds: Optional[dataset.DataappSet] = None
@@ -70,7 +106,8 @@ lazy_load()
 
 if ds is not None:
     app_children = [
-        dcc.Markdown(children=page_description()),
+        dcc.Markdown(children=page_description(),
+                     style={'margin-bottom': '40px'}),
         # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
         dbc.Row(children=[
             dbc.Col(),
