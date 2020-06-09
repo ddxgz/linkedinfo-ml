@@ -1,4 +1,8 @@
 steps:
+- name: gcr.io/cloud-builders/gcloud
+  entrypoint: 'bash'
+  args: [ '-c', 'gcloud secrets versions access latest
+  --secret=data-science-project-redentials > credentials.json' ]
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', 'gcr.io/data-science-258408/linkedinfo-ml-model', '.' ]
 - name: 'gcr.io/cloud-builders/docker'
