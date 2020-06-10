@@ -102,12 +102,12 @@ def domain_rank_fig(ds, top: int = 20) -> go.Figure:
     return fig_Y
 
 
-def pca_titles_3d_fig(df, sub_sample_size: float = 1) -> go.Figure:
+def pca_titles_3d_fig(df, sub_sample_size: float = 1, dot_size=6) -> go.Figure:
     fig = px.scatter_3d(df.sample(frac=sub_sample_size),
                         x=0, y=1, z=2, hover_name='title',
                         color='cluster',
                         title='Article Clusters based on Embeddings (can zoom in)',
                         height=700)
-    fig.update_traces(marker=dict(size=6))
+    fig.update_traces(marker=dict(size=dot_size))
     fig.update_layout(title_x=0.5)
     return fig

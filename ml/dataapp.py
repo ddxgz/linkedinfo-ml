@@ -4,6 +4,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output
 from typing import Optional
 
 from . import dataset
@@ -114,10 +115,19 @@ if ds is not None:
         dcc.Markdown(children=page_description(),
                      style={'margin-bottom': '40px'}),
         # html.H2(children=f'Number of Tags: {ds.target.shape[1]}',
-        dcc.Graph(figure=plots.pca_titles_3d_fig(
-            pca_titles, sub_sample_size=0.9)),
+        dcc.Graph(id='pca-plot'),
         dbc.Row(children=[
-            dbc.Col(),
+            dbc.Col(
+                dcc.Slider(
+                    id='pca-plot-dot-size-slider',
+                    min=3,
+                    max=12,
+                    value=6,
+                    marks={str(size): size for size in range(3, 13)},
+                    step=None
+                ), sm=12, md=6, lg=4)], justify='center'),
+        html.P('Adjust dot size', className='text-muted'),
+        dbc.Row(children=[
             dbc.Col(
                 dbc.Card([
                     # dbc.CardHeader("Number of Tags"),
@@ -130,8 +140,7 @@ if ds is not None:
                         # }),
                     ])
                 ]), sm=12, md=12, lg=4),
-            dbc.Col(),
-        ]),
+        ], justify='center'),
 
         dbc.Row(children=[
             dbc.Col(children=[
@@ -154,6 +163,18 @@ data_app.title = 'Data of LinkedInfo.co'
 data_app.layout = html.Div(
     style=style,
     children=app_children)
+
+
+@data_app.callback(
+    Output('pca-plot', 'figure'),
+    [Input('pca-plot-dot-size-slider', 'value')]
+)
+def update_pca_plot(dot_size):
+    figure = plots.pca_titles_3d_fig(
+        pca_titles, sub_sample_size=1, dot_size=dot_size)
+
+    return figure
+
 
 if __name__ == '__main__':
     data_app.run_server(debug=True, host='127.0.0.1', port=5000)
