@@ -8,6 +8,7 @@ from typing import List, Tuple, Optional
 
 from .language import LanPredictor
 from .tag import TagPredictor
+from .keyword import KeywordPredictor
 
 
 def get_tag_predictor(init=False, test_model=False) -> TagPredictor:
@@ -16,3 +17,7 @@ def get_tag_predictor(init=False, test_model=False) -> TagPredictor:
 
 def get_lan_predictor(init=False) -> LanPredictor:
     return LanPredictor(init=init)
+
+
+def get_keyword_predictor() -> KeywordPredictor:
+    return KeywordPredictor()

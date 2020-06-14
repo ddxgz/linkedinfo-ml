@@ -20,7 +20,7 @@ def singleton(cls, *args, **kwargs):
 
 class BasePredictModel(ABC):
     @abstractmethod
-    def predict(self, text):
+    def predict(self, *args, **kwargs):
         raise NotImplementedError(
             'users must define `predict` to use this base class')
 
@@ -36,7 +36,7 @@ class PredictModel(BasePredictModel):
         super().__init__()
 
     @abstractmethod
-    def predict(self, text):
+    def predict(self, text, *args, **kwargs):
         raise NotImplementedError(
             'users must define `predict` to use this base class')
 

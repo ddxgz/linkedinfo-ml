@@ -37,6 +37,32 @@ LAN_PRED = predictor.get_lan_predictor(
     init=True,
 )
 
+KEYWORD_PRED = predictor.get_keyword_predictor()
+
+
+def info2text(info: dict) -> str:
+    fulltext = info.get('fulltext', None)
+    if fulltext:
+        text = fulltext
+    else:
+        text = info.get('description', None)
+
+    title = info.get('title', None)
+    if not text and not title:
+        raise KeyError(
+            'fulltext, description or title is missing in post data')
+        return
+
+    if title:
+        text = f"{title}. {text}"
+    return text
+
+
+def predict_keywords(info: dict, num_keywords: int = 5) -> List[str]:
+    """returns the a list of keywords for the info"""
+    text = info2text(info)
+    return KEYWORD_PRED.predict(text, num_keywords=num_keywords)
+
 
 def predict_language(info: dict) -> str:
     """ An info comes in as a json (dict) in the following format, use title and
@@ -297,11 +323,13 @@ class InfoExtracted(BaseModel):
     url: Optional[str] = None
     creator: Optional[str] = None
     tags: List[str]
+    keywords: List[str] 
     language: str
 
 
 @app.post('/detection', response_model=InfoExtracted)
-async def info_detection(info: Info, by_url: bool = False, only_model: bool = False):
+async def info_detection(info: Info, by_url: bool = False, only_model: bool = False,
+                         num_keywords: int = 5):
     """ Accept POST request with data in application/json. The data body should
     contain either `description`, `fulltext` or `url`. When intend to predict by
     `url`, the requesting url should include parameter `by_url=[True, true, 1,
@@ -324,6 +352,8 @@ async def info_detection(info: Info, by_url: bool = False, only_model: bool = Fa
             info_ext = info.dict()
 
         lan = predict_language(info_ext)
+
+        keywords = predict_keywords(info.dict(), num_keywords=num_keywords)
     except KeyError as e:
         raise HTTPException(status_code=400,
                             detail=f"Data key missing: {e}")
@@ -333,7 +363,7 @@ async def info_detection(info: Info, by_url: bool = False, only_model: bool = Fa
     # if not only_model:
     #     tags_pred = append_map_tags(tags_pred, info.dict())
 
-    resp = InfoExtracted(tags=tags_pred, language=lan)
+    resp = InfoExtracted(tags=tags_pred, language=lan, keywords=keywords)
     # resp.tags = tags_pred
     # resp.language = lan
     if info_ext.get('fulltext'):
