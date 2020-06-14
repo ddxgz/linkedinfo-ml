@@ -37,7 +37,7 @@
 <body>
     <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
         <h5 class="my-0 mr-md-auto font-weight-normal"><a class="p-2 text-dark"
-            href="/">LinkedInfo ML</a></h5>
+               href="/">LinkedInfo ML</a></h5>
         <nav class="my-2 my-md-0 mr-md-3">
             <a class="p-2 text-dark"
                href="https://www.linkedinfo.co">Linkedinfo</a>
@@ -140,28 +140,41 @@
                     </b-badge>
                     <!-- </h5> -->
                     <!-- </div> -->
-                    <span v-if="info.tags.length > 0">
+                    <span v-if="info.keywords.length > 0">
                         <!-- <b-card-title>The most possible tags are: </b-card-title> -->
-                        with topic tags
+                        with keywords
                         <p></p>
                         <h5>
-                            <span v-for="(item, i) in info.tags">
-                                <b-badge variant="tag"
-                                         :href="'https://www.linkedinfo.co/tags/'+item"
-                                         target="_blank">
+                            <span v-for="(item, i) in info.keywords">
+                                <b-badge variant="keyword">
                                     <!-- style="margin-right: 5px;"> -->
                                     <span>{{ item }}</span>
-                                </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
+                                </b-badge>{{ i < info.keywords.length -1 ? ' ': '' }}
                             </span>
                         </h5>
                         <p></p>
-                        <b-card-text class="small text-muted">Click on a tag to find more</b-card-text>
-                    </span>
-                    <span v-else>
-                        <b-card-title>No tags could be provided</b-card-title>
-                        You may try to
-                        give more text
-                    </span>
+                        <span v-if="info.tags.length > 0">
+                            <!-- <b-card-title>The most possible tags are: </b-card-title> -->
+                            and topic tags
+                            <p></p>
+                            <h5>
+                                <span v-for="(item, i) in info.tags">
+                                    <b-badge variant="tag"
+                                             :href="'https://www.linkedinfo.co/tags/'+item"
+                                             target="_blank">
+                                        <!-- style="margin-right: 5px;"> -->
+                                        <span>{{ item }}</span>
+                                    </b-badge>{{ i < info.tags.length -1 ? ' ': '' }}
+                                </span>
+                            </h5>
+                            <p></p>
+                            <b-card-text class="small text-muted">Click on a tag to find more</b-card-text>
+                        </span>
+                        <span v-else>
+                            <b-card-title>No tags could be provided</b-card-title>
+                            You may try to
+                            give more text
+                        </span>
                 </b-card>
                 <div>
                     <p></p>
@@ -329,8 +342,8 @@
                 this.reqModelInit();
 
                 //For dev 
-                // this.form.description = " This is a topic tags prediction service for technical articles. It uses BERT and is trained on the dataset of LinkedInfo.co and questions on Stack Overflow. "
-                // this.onSubmit();
+                this.form.description = " This is a topic tags prediction service for technical articles. It uses BERT and is trained on the dataset of LinkedInfo.co and questions on Stack Overflow. "
+                this.onSubmit();
             },
             computed: {
                 textShow() {
@@ -568,7 +581,7 @@
             color: rgb(63, 148, 247);
             font-weight: normal;
             border-radius: 3px;
-            padding: .2em .2em;
+            padding: .5em .5em;
             font-size: 16px;
         }
 
@@ -589,6 +602,21 @@
 
         .badge-lan:focus,
         .badge-lan.focus {}
+
+        .badge-keyword {
+            background-color: #e1ecf4;
+            color: #4279a2;
+            font-weight: normal;
+            border-radius: 3px;
+            padding: .5em .5em;
+            font-size: 14px;
+        }
+
+        .badge-keyword:focus,
+        .badge-keyword.focus {
+            /* background-color: #0490f3;
+            color: #517c9c; */
+        }
     </style>
 </body>
 
