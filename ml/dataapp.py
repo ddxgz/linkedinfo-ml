@@ -56,16 +56,16 @@ data_app.index_string = '''
     <body>
         <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm">
             <h5 class="my-0 mr-md-auto font-weight-normal"><a class="p-2 text-dark"
-                href="/">LinkedInfo ML</a></h5>
+                href="https://ml.linkedinfo.co">LinkedInfo ML</a></h5>
             <nav class="my-2 my-md-0 mr-md-3">
                 <a class="p-2 text-dark"
                 href="https://www.linkedinfo.co">Linkedinfo</a>
                 <a class="p-2 text-dark"
-                href="/">Tag Prediction</a>
+                href="https://ml.linkedinfo.co">Tag Prediction</a>
                 <a class="p-2 text-dark"
-                href="/data">Data</a>
+                href="https://ml.linkedinfo.co/data/">Data</a>
                 <!-- <a class="p-2 text-dark"
-                href="https://www.linkedinfo.co/about">About</a> -->
+                href="https://www.linkedinfo.co/about/">About</a> -->
             </nav>
         </div>
 
