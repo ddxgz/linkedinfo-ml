@@ -353,7 +353,7 @@ async def info_detection(info: Info, by_url: bool = False, only_model: bool = Fa
 
         lan = predict_language(info_ext)
 
-        keywords = predict_keywords(info.dict(), num_keywords=num_keywords)
+        keywords = predict_keywords(info_ext, num_keywords=num_keywords)
     except KeyError as e:
         raise HTTPException(status_code=400,
                             detail=f"Data key missing: {e}")
