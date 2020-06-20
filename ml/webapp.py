@@ -321,9 +321,9 @@ class InfoExtracted(BaseModel):
     description: Optional[str] = None
     fulltext: Optional[str] = None
     url: Optional[str] = None
-    creator: Optional[str] = None
+    creators: Optional[List[str]] = None
     tags: List[str]
-    keywords: List[str] 
+    keywords: List[str]
     language: str
 
 
@@ -374,6 +374,8 @@ async def info_detection(info: Info, by_url: bool = False, only_model: bool = Fa
         resp.url = info_ext.get('url')
     if info_ext.get('title'):
         resp.title = info_ext.get('title')
+    if info_ext.get('creators'):
+        resp.creators = info_ext.get('creators')
 
     # print(TAGS_MODEL.__class__.__name__)
     return resp

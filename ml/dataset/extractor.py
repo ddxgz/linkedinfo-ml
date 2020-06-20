@@ -17,6 +17,7 @@ import html2text
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from fake_useragent import UserAgent
+from newspaper import Article
 # import pysnooper
 
 
@@ -627,7 +628,8 @@ def get_html_from_url(infourl: str, force_download: bool = False,
     return tmp
 
 
-def extract_info_from_url(infourl: str) -> dict:
+# deprecated
+def extract_info_from_url_deprecated(infourl: str) -> dict:
     info: dict = {}
     urlobj = urlparse(infourl)
     if urlobj.netloc in info_spec_dict.keys():
@@ -647,6 +649,37 @@ def extract_info_from_url(infourl: str) -> dict:
     info['title'] = extract_title_from_html(html_doc)
     info['fulltext'] = extract_text_from_html(html_doc)[:3000]
     info['url'] = infourl
+
+    return info
+
+
+# TODO passing detected language to parse
+# newer version based on newspaper
+def extract_info_from_url(infourl: str, description_from: str = 'summary',
+                          n_sentences: int = 5) -> dict:
+    info = {}
+
+    article = Article(infourl)
+    article.download()
+    article.parse()
+    # logger.info(f'authors: {article.authors}')
+
+    info['url'] = infourl
+    info['title'] = article.title
+    info['creators'] = article.authors
+
+    if description_from == 'summary':
+        article.nlp()
+        info['description'] = article.summary
+    else:
+        text = article.text
+        sentences = text.split('\n')
+        # TODO better way to compare title
+        if sentences[0] == info['title']:
+            sentences = sentences[1:]
+        info['description'] = sentences[:n_sentences]
+
+    info['fulltext'] = article.text
 
     return info
 
