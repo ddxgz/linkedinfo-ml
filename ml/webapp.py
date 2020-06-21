@@ -359,6 +359,8 @@ async def info_detection(info: Info, by_url: bool = False, only_model: bool = Fa
                             detail=f"Data key missing: {e}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f'Value error: {e}')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f'Unknown error: {e}')
 
     # if not only_model:
     #     tags_pred = append_map_tags(tags_pred, info.dict())

@@ -660,7 +660,10 @@ def extract_info_from_url(infourl: str, description_from: str = 'summary',
     info = {}
 
     article = Article(infourl)
-    article.download()
+    try:
+        article.download()
+    except Exception:
+        raise
     article.parse()
     # logger.info(f'authors: {article.authors}')
 
