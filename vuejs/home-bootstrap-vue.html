@@ -126,9 +126,24 @@
             </b-row>
             <div v-if="isSuccess"
                  align="center">
+
+                <div v-if="isByUrl" style="margin-bottom: 20px">
+                    <b-button v-b-toggle.collapse-1-inner
+                              size="sm">Show extracted info</b-button>
+                    <b-collapse id="collapse-1-inner"
+                                class="mt-2">
+                        <b-card>
+                            <b-table striped
+                                     hover
+                                     :items="infoAsTable"></b-table>
+                        </b-card>
+                    </b-collapse>
+                </div>
+
                 <b-card style="max-width: 480px;"
                         align="center">
                     <b-card-title>Result</b-card-title>
+
                     {{ textShow }}
                     <!-- <div v-if="info.language"> -->
                     <!-- <h4>The text is in language: </h4> -->
@@ -346,6 +361,13 @@
                 // this.onSubmit();
             },
             computed: {
+                infoAsTable: function () {
+                    return [
+                        { item: "Title", value: this.info.title },
+                        { item: "Authors", value: this.info.creators.join(", ") },
+                        { item: "Description", value: this.info.description },
+                    ]
+                },
                 textShow() {
                     var msg = 'The article is'
                     if (this.info.language) {
