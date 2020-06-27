@@ -17,7 +17,7 @@ import html2text
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from fake_useragent import UserAgent
-from newspaper import Article
+from newspaper import Article, fulltext
 # import pysnooper
 
 
@@ -178,11 +178,12 @@ def fetch_infos(data_home='data', from_batch_cache: str = None, fulltext=True,
             os.makedirs(target_path_fulltext)
 
         for info in cache['content']:
-            info['fulltext'] = _retrieve_info_fulltext(info,
-                                                       target_dir=target_path_fulltext,
-                                                       cache_path=cache_path_fulltext,
-                                                       force_download=False,
-                                                       force_extract=True)
+            info['fulltext'] = _retrieve_info_fulltext_v2(info,
+                                                          #   target_dir=target_path_fulltext,
+                                                          target_dir='data/v2/fulltext',
+                                                          cache_path=cache_path_fulltext,
+                                                          force_download=False,
+                                                          force_extract=True)
         if save_cache:
             filename = f'infos_0_{len(cache["content"])}_fulltext.json'
             infos_cache = os.path.join(infos_home, filename)
@@ -404,6 +405,10 @@ def extract_info_towardsdatascience(source: str) -> dict:
 # TODO In the first couple of nodes, if the len of text in a node is very short, then drop
 def extract_bs4(source: str) -> str:
     soup = BeautifulSoup(source, 'html.parser')
+
+    if not soup.body:
+        return soup.get_text(separator=' ', strip=True)
+
     if soup.body.header:
         soup.body.header.extract()
     if soup.body.h1:
@@ -426,6 +431,14 @@ def extract_html2text(source: str) -> str:
 
 def extract_text_from_html(source: str, method=extract_bs4) -> str:
     return method(source)
+
+
+def extract_text_from_html_newspaper(source: str) -> str:
+    try:
+        tmp = fulltext(source)
+    except:
+        tmp = extract_text_from_html(source, method=extract_bs4)
+    return tmp
 
 
 def extract_title_from_html(source: str) -> str:
@@ -481,6 +494,7 @@ def retrieve_infoqcn_fulltext(referer_url: str) -> str:
     content = article['data'].get('content', '')
     # text = html2text.html2text(content)
     text = extract_text_from_html(content)
+    # text = fulltext(content)
     # logger.debug(f'extract infoq text  {referer_url},  {text[:10]}')
     return text
 
@@ -497,9 +511,95 @@ info_html_ext_dict = {
     'towardsdatascience.com': extract_info_towardsdatascience,
 }
 
+
+def _retrieve_info_fulltext_v2(info, target_dir='data/v2/fulltext',
+                               cache_path='data/cache/fulltext',
+                               fallback_threshold=100, force_download=False,
+                               force_extract=True):
+    """Retrieve fulltext of an info by its url via newspaper. The original html doc is stored
+    in cache_path named as info.key. The extracted text doc will be stored in
+    target_dir named as info.key.
+
+    Some of the webpage may lazy load the fulltext or the page not exists
+    anymore, then test if the length of the retrieved text is less than the
+    fallback_threshold. If it's less than the fallback_threshold, return the
+    short description of the info.
+
+    Can make a list of hosts that lazy load the fulltext, then try to utilize
+    their APIs to retrieve the fulltext.
+
+    If force_download is True or cache not exists, then force_extract is True
+    despite of the passing value.
+
+    Cache file naming: {key}.html
+    Target file naming: {key}.txt
+
+    Returns
+    -------
+    str : str of fulltext of the info
+    """
+    txt = info['description']
+    cache_filename = f'{info["key"]}.html'
+    cache = os.path.join(cache_path, cache_filename)
+    target_filename = f'{info["key"]}.txt'
+    target = os.path.join(target_dir, target_filename)
+
+    logger.debug(f'to retrieve fulltext of {info["url"]}')
+    if force_download or not os.path.exists(cache):
+        force_extract = True
+        # download and store
+        try:
+            res = requests.get(info['url'])
+            logger.debug(
+                f'encoding: {res.encoding}, key: {info["key"]}, url: {info["url"]}')
+            if res.status_code != 200:
+                logger.info(f'Failed to retrieve html from {info["url"]}')
+                tmp = ''
+        except Exception as e:
+            logger.error(e)
+            logger.info(f'Failed to retrieve html from {info["url"]}')
+            tmp = ''
+        else:
+            # TODO if should keep forcing utf-8?
+            res.encoding = 'utf-8'
+            tmp = res.text
+        with open(cache, 'w') as f:
+            # if res.encoding not in ('utf-8', 'UTF-8'):
+            #     logger.debug(f'write encoding: {res.encoding} to utf-8, key: {info["key"]}')
+            #     f.write(tmp.decode(res.encoding).encode('utf-8'))
+            # else:
+            f.write(tmp)
+
+    if force_extract:
+        # extract from cache or API, and store to target
+        urlobj = urlparse(info['url'])
+        if urlobj.netloc in fulltext_spec_dict.keys():
+            logger.debug(
+                f'to extract special url: {info["key"]}, url: {info["url"]}')
+            tmp = fulltext_spec_dict[urlobj.netloc](info['url'])
+        else:
+            with open(cache, 'r') as f:
+                # tmp = html2text.html2text(f.read())
+                tmp = extract_text_from_html_newspaper(f.read())
+                # tmp = fulltext(f.read())
+        with open(target, 'w') as f:
+            f.write(tmp)
+
+    if os.path.exists(target):
+        # get fulltext
+        with open(target, 'r') as f:
+            tmp = f.read()
+
+        # test if the fulltext is ok
+        if len(tmp) >= fallback_threshold:
+            txt = tmp
+        else:
+            logger.debug(f'Short text from {info["url"]}')
+
+    return txt
+
+
 # TODO: make it asynchronous
-
-
 def _retrieve_info_fulltext(info, target_dir='data/fulltext',
                             cache_path='data/cache/fulltext',
                             fallback_threshold=100, force_download=False,
@@ -689,7 +789,7 @@ def extract_info_from_url(infourl: str, description_from: str = 'summary',
 
 if __name__ == '__main__':
     # logging.info('start')
-    # df = fetch_infos(fulltext=True)
+    df = fetch_infos(fulltext=True)
     # ds = df_tags()
     # infos = fetch_untagged_infos()
     # caching_untagged_infos()
@@ -708,9 +808,9 @@ if __name__ == '__main__':
     # infourl =
     # 'http://xplordat.com/2019/12/23/have-unbalanced-classes-try-significant-terms/'
     # infourl='https://mccormickml.com/2019/07/22/BERT-fine-tuning/'
-    infourl = 'https://segmentfault.com/a/1190000022277900'
-    doc = extract_info_from_url(infourl)
+    # infourl = 'https://segmentfault.com/a/1190000022277900'
+    # doc = extract_info_from_url(infourl)
 
-    with open('tmp.json', 'w') as f:
-        json.dump(doc, f)
-    # pass
+    # with open('tmp.json', 'w') as f:
+    #     json.dump(doc, f)
+    # # pass
