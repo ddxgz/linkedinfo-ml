@@ -2,7 +2,8 @@
 <html>
 
 <head>
-    <title>Topic Tags Predication</title>
+    <!-- <title>Topic Tags Predication</title> -->
+    <title>Text Analysis</title>
     <meta charset="utf-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -42,7 +43,7 @@
             <a class="p-2 text-dark"
                href="https://www.linkedinfo.co">Linkedinfo</a>
             <a class="p-2 text-dark"
-               href="/">Tag Prediction</a>
+               href="/">Text Analysis</a>
             <a class="p-2 text-dark"
                href="/data/">Data</a>
             <!-- <a class="p-2 text-dark"
@@ -53,16 +54,17 @@
     <div class="container">
         <div id="app"
              class="appmain">
-            <h1>Tag Prediction</h1>
+            <h1>Text Analysis</h1>
             <p></p>
             <p class="lead">
-                This is a topic tags prediction service for technical articles.
-                It uses BERT and is trained on the dataset of <a href="https://www.linkedinfo.co/"
+                This is a text analysis service for technical articles. The most
+                interesting part is its topic tags identification, whichs uses BERT and is trained on the dataset of <a
+                   href="https://www.linkedinfo.co/"
                    target="_blank">LinkedInfo.co</a> and questions on Stack Overflow.
             </p>
             <p class="lead">
                 You can either choose to submit the title/text or the URL of the article you
-                want to get tags.
+                want to analyze.
             </p>
             <p></p>
             <div class="submitform">
@@ -74,7 +76,8 @@
                             align="center">
                         <b-tab title="Text"
                                name="byText">
-                            <label for="article-text">Paste the title/text of an article to get tag</label>
+                            <label for="article-text">Paste the title/text of an
+                            article to analyze</label>
 
                             <!-- <b-form-item label="Title">
                                     <b-input v-model="form.title"></b-input>
@@ -94,7 +97,7 @@
                         <b-tab title="URL"
                                name="byUrl">
                             <label for="article-url">Paste the URL of an article to extract and
-                                get tag</label>
+                                analyze</label>
 
                             <!-- <b-form-item label="Title">
                                     <b-input v-model="form.title"></b-input>
@@ -127,7 +130,8 @@
             <div v-if="isSuccess"
                  align="center">
 
-                <div v-if="isByUrl" style="margin-bottom: 20px">
+                <div v-if="isByUrl"
+                     style="margin-bottom: 20px">
                     <b-button v-b-toggle.collapse-1-inner
                               size="sm">Show extracted info</b-button>
                     <b-collapse id="collapse-1-inner"
