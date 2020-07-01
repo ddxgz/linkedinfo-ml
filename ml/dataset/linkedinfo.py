@@ -48,8 +48,8 @@ logger.addHandler(consoleHandler)
 
 RAND_STATE = 20200122
 DATA_DIR = 'data'
-INFOS_CACHE = 'infos_0_3790.json'
-INFOS_FULLTEXT_CACHE = 'infos_0_3790_fulltext.json'
+INFOS_CACHE = 'infos_0_4001.json'
+INFOS_FULLTEXT_CACHE = 'infos_0_4001_fulltext.json'
 # UNTAGGED_INFOS_FULLTEXT_CACHE = 'untagged_infos_fulltext.json'
 UNTAGGED_INFOS_CACHE = 'untagged_infos.json'
 
@@ -403,7 +403,9 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
                  tag_type: str = 'tagID', content_length_threshold: int = 100,
                  lan: str = None, filter_tags_threshold: int = None,
                  concate_title: bool = False,
-                 partial_len: bool = None, remove_code: bool = True, *args, **kwargs):
+                 partial_len: bool = None,
+                 use_longer_fulltext_description: bool = False,
+                 remove_code: bool = True, *args, **kwargs):
     """
     All the data relate to identify tags of an info.
 
@@ -508,6 +510,11 @@ def ds_info_tags(from_batch_cache: str = 'fulltext',
     if filter_tags_threshold is not None and filter_tags_threshold > 0:
         df_data, tags_lst = filter_tags(
             df_data, tags_lst, threshold=filter_tags_threshold)
+
+    if use_longer_fulltext_description and require_fulltext:
+        indices = df_data[df_data['fulltext'].str.len(
+        ) < df_data['description'].str.len()].index
+        df_data.loc[indices, 'fulltext'] = df_data.loc[indices, 'description']
 
     df_tags = pd.DataFrame(tags_lst)
 

@@ -34,8 +34,10 @@ logger.addHandler(consoleHandler)
 
 RAND_STATE = 20200122
 DATA_DIR = 'data'
-INFOS_CACHE = 'infos_0_3790.json'
-INFOS_FULLTEXT_CACHE = 'infos_0_3790_fulltext.json'
+# INFOS_CACHE = 'infos_0_3790.json'
+# INFOS_FULLTEXT_CACHE = 'infos_0_3790_fulltext.json'
+INFOS_CACHE = 'infos_0_4009.json'
+INFOS_FULLTEXT_CACHE = 'infos_0_4009_fulltext.json'
 # UNTAGGED_INFOS_FULLTEXT_CACHE = 'untagged_infos_fulltext.json'
 UNTAGGED_INFOS_CACHE = 'untagged_infos.json'
 
