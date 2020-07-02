@@ -297,7 +297,8 @@ def model_persist_v7():
 
 def upload_model_bin(key, model_file: str):
     client = storage.Client()
-    bucket_name = 'tag-models'
+    bucket_name = 'data-science-258408-models'
+    # bucket_name = 'tag-models'
     # bucket = client.create_bucket(bucket_name)
     bucket = client.bucket(bucket_name)
 
