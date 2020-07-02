@@ -225,7 +225,7 @@ def append_map_tags(predictor, tags: List[str], text: str) -> List[str]:
 class TagPredictor(object):
     def __init__(self, init: bool = False, test_model: bool = False):
         self.model: PredictModel
-        self.ft_model: FastTextModel
+        # self.ft_model: FastTextModel
         self.matcher = None
         self.test_model = test_model
         self.initialized = False
@@ -241,7 +241,7 @@ class TagPredictor(object):
         if self.test_model:
             print('loading test model...')
             self.model = TagsTestModel()
-            self.ft_model = FastTestModel()
+            # self.ft_model = FastTestModel()
             self.tag_list = [{'tagID': 'python', 'label': 'Python'},
                              {'tagID': 'machine-learning', 'label': 'Machine Learning'}]
             self.tags_map = {"ML": "machine-learning"}
@@ -252,7 +252,7 @@ class TagPredictor(object):
             self.nlp = Language()
         else:
             self.model = TagsTextModelV3()
-            self.ft_model = TagsFasttextModel()
+            # self.ft_model = TagsFasttextModel()
             self.tag_list = dataset.get_tags_list()
             self.tags_map = dataset.get_tags_map()
 
@@ -281,10 +281,11 @@ class TagPredictor(object):
         # tags: [str] = []
 
         # tags_ft = self.ft_model.predict(text, top_n=2)
-        tags_ft = self.ft_model.predict(text, k=3, threshold=0.15,
-                                        at_least_one=False)
+        # REVIEW temporary remove fasttext model to reduce memory usage
+        # tags_ft = self.ft_model.predict(text, k=3, threshold=0.15,
+        #                                 at_least_one=False)
 
-        tags = self._append_ft_tags(tags, tags_ft)
+        # tags = self._append_ft_tags(tags, tags_ft)
 
         if entity_tags:
             # tags = append_map_tags(self, tags, text)
