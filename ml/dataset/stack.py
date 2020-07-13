@@ -1,7 +1,9 @@
+import os
 from dataclasses import dataclass
 
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
+from google.cloud import bigquery
 from typing import List, Callable, Union, Tuple
 
 
@@ -64,3 +66,50 @@ def ds_stack(stackfiles: List[str] = STACKFILES, text_cols: List[str] = [], name
             df_keep['body'], sep=' ')
 
     return DatasetStack(df_keep, Y, mlb.classes_, tags_lst, mlb)
+
+
+def get_query_str(offset, per_page=10, least_score=10):
+    return f"""
+    SELECT id, title, tags, body, score
+    FROM `bigquery-public-data.stackoverflow.posts_questions`
+    WHERE score > {least_score} and title is not null and body is not null and tags is not null
+    ORDER BY score DESC
+    LIMIT {per_page} OFFSET {offset}
+    """
+
+
+def get_stackoverflow_questions(num, start=0, per_page=100000, least_score=10,
+                                filepath='data/stackoverflow-bigquery'):
+    num_queries = num / per_page
+    if num_queries > int(num_queries):
+        num_queries += 1
+    num_queries = int(num_queries)
+
+    client = bigquery.Client()
+
+    offset = start
+    for i in range(num_queries):
+        query_str = get_query_str(offset, per_page, least_score)
+        query_job = client.query(query_str)
+        results = query_job.result()
+
+        df = results.to_dataframe()
+
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+        df.to_csv(f'{filepath}/top_score_questions_{offset}.csv')
+
+        offset += per_page
+
+
+def get_num_questions(least_score):
+    query_str = f"""
+        select count(*) 
+        FROM `bigquery-public-data.stackoverflow.posts_questions`
+        WHERE score > {least_score} and title is not null and body is not null and tags is not null
+    """
+    client = bigquery.Client()
+    query_job = client.query(query_str)
+    results = query_job.result()
+    # return results.to_dataframe()
+    return list(results)[0]['f0_']
