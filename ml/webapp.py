@@ -214,6 +214,8 @@ def check_valid_request(info: dict, by_url: bool = False, only_model: bool = Fal
         # toks = nltk.word_tokenize(info['description'])
         if len(toks) < 5:
             return False, 'Too short text for prediction.'
+        if len(toks) > 2048:
+            return False, 'Too long text.'
     return True, ''
 
 
