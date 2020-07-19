@@ -3,6 +3,7 @@
 import os
 import json
 import uuid
+import re
 from datetime import datetime
 
 # from flask import Flask, request
@@ -204,11 +205,22 @@ async def predict_tags_by_url(info: dict, entity_tags: bool = True) -> Tuple[Lis
     return await predict_tags(info, entity_tags=entity_tags), info
 
 
+# TODO: filter more unlikely urls
+def supported_url(url_in: str) -> bool:
+    regex = re.compile(
+        u"^(?:http)s?://"
+    )
+    return re.match(regex, url_in) is not None
+
+
 def check_valid_request(info: dict, by_url: bool = False, only_model: bool = False) -> Tuple[bool, str]:
     if by_url:
         infourl = info['url']
         if infourl is None:
             return False, 'URL missing in post data.'
+        if not supported_url(infourl):
+            return False, 'URL not supported.'
+
     else:
         toks = info['description'].split(' ')
         # toks = nltk.word_tokenize(info['description'])
