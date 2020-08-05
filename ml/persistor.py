@@ -24,6 +24,7 @@ import joblib
 # import matplotlib.pyplot as plt
 from google.cloud import storage
 
+from ml import filesutil
 from ml import dataset
 import mltb
 from mltb.mltb.nlp.bert import bert_transform, download_once_pretrained_transformers, get_tokenizer_model
@@ -229,26 +230,8 @@ class Persistor(object):
         dump_target_mlb = os.path.join(self.datahome, mlb_file)
         m = joblib.dump(self.ds.mlb, dump_target_mlb, compress=3)
 
-        save_model_url(SK_MODEL_KEY, dump_target)
-        save_model_url(SK_MLB_KEY, dump_target_mlb)
-
-
-def save_model_url(key: str, model_file: str, location: str = 'local'):
-    """model file path should be abolute path"""
-    location_file = 'model_location.json'
-
-    if os.path.exists(location_file):
-        with open(location_file, 'r') as f:
-            model_location = json.load(f)
-    else:
-        model_location = {}
-
-    loc = model_location.get(location, {})
-    loc[key] = model_file
-    model_location[location] = loc
-
-    with open(location_file, 'w') as f:
-        json.dump(model_location, f)
+        filesutil.save_model_url(SK_MODEL_KEY, dump_target)
+        filesutil.save_model_url(SK_MLB_KEY, dump_target_mlb)
 
 
 def model_persist_v6():
@@ -295,53 +278,11 @@ def model_persist_v7():
     per.persist(filename='tags_textbased_pred_10')
 
 
-def upload_model_bin(key, model_file: str):
-    client = storage.Client()
-    bucket_name = 'data-science-258408-models'
-    # bucket_name = 'tag-models'
-    # bucket = client.create_bucket(bucket_name)
-    bucket = client.bucket(bucket_name)
-
-    dest = model_file.split('/')[-1]
-    blob = bucket.blob(dest)
-
-    blob.upload_from_filename(model_file)
-
-    save_model_url(key, f'{bucket.name}/{dest}', location='gcloud')
-
-
-def upload_models():
-    location_file = 'model_location.json'
-
-    if os.path.exists(location_file):
-        with open(location_file, 'r') as f:
-            model_location = json.load(f)
-
-        local = model_location.get('local', None)
-        if local is None:
-            return
-
-        for k, v in local.items():
-            if os.path.isdir(v):
-                zipname = f'{v.rstrip("/")}.zip'
-                with zipfile.ZipFile(zipname, 'w') as zipObj:
-                    for folder, subfolders, files in os.walk(v):
-                        for fname in files:
-                            filePath = os.path.join(folder, fname)
-                            zipObj.write(filePath, os.path.basename(filePath))
-                v = zipname
-            upload_model_bin(k, v)
-
-
-def local_models_to_json():
-    for k, v in ALL_MODELS.items():
-        save_model_url(k, v, location='local')
-
-
 if __name__ == '__main__':
     # model_search()
     # model_persist_v7()
     # save_pretrained()
-    local_models_to_json()
-    upload_models()
+    # local_models_to_json()
+    # upload_models()
     # download_models()
+    pass
