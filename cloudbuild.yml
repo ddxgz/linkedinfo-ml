@@ -23,6 +23,10 @@ steps:
     - '--port'
     - '80'
     - '--allow-unauthenticated'
+artifacts:
+  objects:
+    location: 'gs://data-science-258408-artifacts-cloudbuild'
+    paths: ['*']
 timeout: 1200s
 images:
 - gcr.io/data-science-258408/linkedinfo-ml-model
