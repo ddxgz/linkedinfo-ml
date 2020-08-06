@@ -2,6 +2,9 @@
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
+cloudbuild:
+	gcloud builds submit --config cloudbuild.yml . 
+
 sync_data_to_gcloud: model_location
 	python3 -c 'from ml.filesutil import fake_upload; fake_upload()'
 
