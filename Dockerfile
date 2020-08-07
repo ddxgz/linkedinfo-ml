@@ -25,6 +25,7 @@ RUN pip3 install -r requirements.txt --no-cache-dir
 FROM base as app
 
 
+ENV LINKEDINFO_ENV=prod
 ENV GOOGLE_APPLICATION_CREDENTIALS="/code/credentials.json"
 
 # CMD gunicorn -b 0.0.0.0:8070 -k gevent webapp:wsgiapp
