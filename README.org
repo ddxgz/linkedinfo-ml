@@ -7,6 +7,8 @@ Posts relate to this project:
 - [[https://pcx.linkedinfo.co/post/text-tag-prediction-bert/][Using BERT to perform Topic Tag Prediction for Technical Articles]]
 - [[https://pcx.linkedinfo.co/post/text-tag-prediction/][Multi-label classification to predict topic tags of technical articles from LinkedInfo.co]]
 
+*Note: these posts were performed quite some time ago, they may be now far away from good practice. So please search on the Web to find more recent ones.*
+
 ** Uage
 
 #+BEGIN_SRC shell
