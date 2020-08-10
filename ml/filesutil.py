@@ -5,6 +5,7 @@ import json
 from google.cloud import storage
 
 from ml.models.files import ALL_MODELS
+from ml import config
 
 
 def save_model_url(key: str, model_file: str, location: str = 'local'):
@@ -32,7 +33,8 @@ def local_models_to_json():
 
 def upload_model_bin(key, model_file: str):
     client = storage.Client()
-    bucket_name = 'data-science-258408-models'
+    # bucket_name = 'data-science-258408-models'
+    bucket_name = config.model_bucket
     # bucket_name = 'tag-models'
     # bucket = client.create_bucket(bucket_name)
     bucket = client.bucket(bucket_name)

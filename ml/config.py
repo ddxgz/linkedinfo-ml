@@ -22,4 +22,6 @@ model_path = os.getenv(f'{ENV_PREFIX}MODEL_PATH', default='data/models/')
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
+model_bucket = os.getenv(f'{ENV_PREFIX}MODEL_BUCKET', default='data-science-258408-models')
+
 # print(test_model, env, model_path)

@@ -4,6 +4,8 @@ import json
 
 from google.cloud import storage
 
+from ml import config
+
 PRETRAINED_BERT_WEIGHTS = "data/models/bert_mini_finetuned_tagthr_20/"
 
 MODEL_FILE = 'data/models/tags_textbased_pred_10.joblib.gz'
@@ -31,7 +33,8 @@ ALL_MODELS = {
 
 def download_model_bin(key, model_file):
     client = storage.Client()
-    bucket_name = 'data-science-258408-models'
+    # bucket_name = 'data-science-258408-models'
+    bucket_name = config.model_bucket
     # bucket_name = 'tag-models'
     # bucket = client.create_bucket(bucket_name)
     bucket = client.bucket(bucket_name)
