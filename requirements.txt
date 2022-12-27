@@ -25,7 +25,7 @@ PySnooper==0.0.33
 python-dotenv>=0.10.1
 requests==2.22.0
 scikit-learn==0.22.2.post1
-setuptools==39.1.0
+setuptools==65.5.1
 spacy==2.2.4
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz#egg=en_core_web_sm
 -f https://download.pytorch.org/whl/torch_stable.html                                                                                                                                                             
